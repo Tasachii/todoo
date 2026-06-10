@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Schibsted Grotesk", "Noto Sans Thai", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", "Noto Sans Thai", Georgia, serif;
+
+  --color-paper: #f7f5f1;
+  --color-card: #fffdf9;
+  --color-ink: #1f1b18;
+  --color-night: #161412;
+  --color-night-card: #211e1b;
+  --color-night-edge: #2e2a26;
+  --color-accent: #d97706;
+  --color-accent-bright: #f59e0b;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-paper text-ink font-sans antialiased dark:bg-night dark:text-stone-200;
+    overscroll-behavior-y: none;
+  }
+  ::selection {
+    @apply bg-amber-200 text-stone-900;
+  }
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+}
+
+/* faint paper grain over everything */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.dark body::after {
+  opacity: 0.06;
+}
+
+/* hide scrollbars on horizontal board scroll, keep function */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

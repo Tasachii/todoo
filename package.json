@@ -1,0 +1,23 @@
+{
+  "name": "todoo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first todo app with a terminal CLI, kanban board, calendar, and focus mode",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,magenta \"npm run dev -w @todoo/server\" \"npm run dev -w @todoo/web\"",
+    "build": "npm run build -w @todoo/web",
+    "start": "npm run start -w @todoo/server",
+    "test": "npm run test -w @todoo/server && npm run test -w @todoo/cli",
+    "cli:link": "npm link -w @todoo/cli"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=23.4.0"
+  }
+}
