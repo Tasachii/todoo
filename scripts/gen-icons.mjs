@@ -3,8 +3,8 @@
 import { deflateSync } from 'node:zlib'
 import { writeFileSync, mkdirSync } from 'node:fs'
 
-const BG = [28, 25, 23] // stone-900
-const FG = [245, 158, 11] // amber-500
+const BG = [28, 25, 23] // sumi charcoal
+const FG = [227, 66, 52] // shu-iro vermillion — the TodoDesu brand red
 
 function crc32(buf) {
   let c

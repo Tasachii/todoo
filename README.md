@@ -1,4 +1,4 @@
-# Todoo
+# TodoDesu トドデス。
 
 A local-first todo application for Mac, iPhone, and iPad, paired with a terminal CLI that
 shares the same data. Capture a task from the command line in seconds, organize it on a
@@ -8,7 +8,7 @@ all backed by a single SQLite file on your machine. No accounts, no cloud, no tr
 ## Why this exists
 
 Most todo apps force a choice: fast capture (terminal tools) or rich organization
-(GUI apps). Todoo does both against one source of truth. The REST API is the single
+(GUI apps). TodoDesu does both against one source of truth. The REST API is the single
 authority over the data; the web app and the CLI are equal clients, so a task added with
 `todo add` appears in the browser instantly, and a card dragged to *Done* on the board is
 reflected in the next `todo list`.
@@ -38,7 +38,9 @@ reflected in the next `todo list`.
   focused, sessions, tasks completed)
 
 ### Platform
-- Light and dark themes; follows the system setting by default with a manual override
+- Four themes: auto / light / dark / **Wa (和)** — a warm Japanese mode: washi-paper tones,
+  sumi ink, a single vermillion accent, Mincho display type, an ensō focus ring, a hanko
+  完 stamp on completed tasks, and brush-stroke strikethroughs
 - Installable as a PWA on iPhone, iPad, and Mac (Safari, Add to Home Screen)
 - Builds as a native iOS app (Capacitor) ready for the App Store: on the phone the app
   runs fully standalone with an on-device data engine — no server, no account, no
@@ -126,7 +128,7 @@ npm run build    # build the web app once
 npm start        # serve app + API together at http://127.0.0.1:4521
 ```
 
-To use Todoo from an iPhone or iPad on the same Wi-Fi network:
+To use TodoDesu from an iPhone or iPad on the same Wi-Fi network:
 
 ```bash
 TODOO_HOST=0.0.0.0 npm start

@@ -49,7 +49,13 @@ export default function CalendarView() {
   return (
     <div>
       <header className="mb-5 mt-4 flex items-end justify-between md:mt-0">
-        <h1 className="font-display text-[2rem] font-semibold leading-tight">Calendar</h1>
+        <h1 className="font-display text-[2rem] font-semibold leading-tight">
+          Calendar
+          <span className="ml-2.5 hidden align-middle text-base font-normal tracking-[0.2em] text-stone-300 wa:inline dark:text-stone-600"
+            aria-hidden="true">
+            暦
+          </span>
+        </h1>
         <div className="flex rounded-full bg-stone-100 p-1 text-xs font-medium dark:bg-night-edge">
           {['month', 'upcoming'].map((m) => (
             <button

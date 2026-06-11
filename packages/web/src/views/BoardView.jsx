@@ -36,7 +36,7 @@ function Card({ task, overlay = false }) {
         overlay ? 'rotate-2 shadow-xl' : ''
       }`}
     >
-      <p className={`text-[14px] leading-snug ${done ? 'text-stone-400 line-through dark:text-stone-500' : ''}`}>
+      <p className={`text-[14px] leading-snug ${done ? 'wa-strike text-stone-400 line-through dark:text-stone-500' : ''}`}>
         {task.title}
       </p>
       <div className="mt-1 flex items-center gap-2 empty:hidden">
@@ -166,7 +166,13 @@ export default function BoardView() {
   return (
     <div>
       <header className="mb-6 mt-4 md:mt-0">
-        <h1 className="font-display text-[2rem] font-semibold leading-tight">Board</h1>
+        <h1 className="font-display text-[2rem] font-semibold leading-tight">
+          Board
+          <span className="ml-2.5 hidden align-middle text-base font-normal tracking-[0.2em] text-stone-300 wa:inline dark:text-stone-600"
+            aria-hidden="true">
+            ボード
+          </span>
+        </h1>
         <p className="mt-0.5 text-sm text-stone-400 dark:text-stone-500">
           Drag cards between columns.
         </p>

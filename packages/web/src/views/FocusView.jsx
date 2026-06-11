@@ -78,14 +78,15 @@ function Ring({ progress, label, sub, color = 'text-accent' }) {
   const c = 2 * Math.PI * r
   return (
     <div className="relative mx-auto" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
+      {/* --ring-c lets wa mode turn the track into an ensō (open brush circle) via CSS */}
+      <svg width={size} height={size} className="-rotate-90" style={{ '--ring-c': `${c}px` }}>
         <circle
           cx={size / 2}
           cy={size / 2}
           r={r}
           fill="none"
           strokeWidth={stroke}
-          className="stroke-stone-200/80 dark:stroke-night-edge"
+          className="enso-track stroke-stone-200/80 dark:stroke-night-edge"
         />
         <circle
           cx={size / 2}
@@ -276,7 +277,13 @@ export default function FocusView() {
     <div className="flex flex-col">
       <header className="mb-8 mt-4 flex items-end justify-between md:mt-0">
         <div>
-          <h1 className="font-display text-[2rem] font-semibold leading-tight">Focus</h1>
+          <h1 className="font-display text-[2rem] font-semibold leading-tight">
+            Focus
+            <span className="ml-2.5 hidden align-middle text-base font-normal tracking-[0.2em] text-stone-300 wa:inline dark:text-stone-600"
+            aria-hidden="true">
+              集中
+            </span>
+          </h1>
           <p className="mt-0.5 text-sm text-stone-400 dark:text-stone-500">
             {focusedMin > 0
               ? `${focusedMin} min focused today · ${stats.focus_sessions} session${stats.focus_sessions === 1 ? '' : 's'}`

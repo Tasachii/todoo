@@ -14,30 +14,34 @@ import {
 } from './icons.jsx'
 
 const TABS = [
-  { to: '/', label: 'Today', icon: TodayIcon },
-  { to: '/board', label: 'Board', icon: BoardIcon },
-  { to: '/calendar', label: 'Calendar', icon: CalendarIcon },
-  { to: '/focus', label: 'Focus', icon: FocusIcon },
+  { to: '/', label: 'Today', jp: '今日', icon: TodayIcon },
+  { to: '/board', label: 'Board', jp: 'ボード', icon: BoardIcon },
+  { to: '/calendar', label: 'Calendar', jp: '暦', icon: CalendarIcon },
+  { to: '/focus', label: 'Focus', jp: '集中', icon: FocusIcon },
 ]
 
 function ThemeButton() {
   const [pref, setPref] = useTheme()
-  const next = { auto: 'light', light: 'dark', dark: 'auto' }
+  const next = { auto: 'light', light: 'dark', dark: 'wa', wa: 'auto' }
   const Icon = pref === 'light' ? SunIcon : pref === 'dark' ? MoonIcon : AutoThemeIcon
   return (
     <button
-      onClick={() => setPref(next[pref])}
-      title={`Theme: ${pref}`}
+      onClick={() => setPref(next[pref] ?? 'auto')}
+      title={`Theme: ${pref === 'wa' ? 'wa (和)' : pref}`}
       className="flex h-9 w-9 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-200/60 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-night-edge dark:hover:text-stone-100"
     >
-      <Icon size={18} />
+      {pref === 'wa' ? <span className="text-[14px] font-medium text-accent">和</span> : <Icon size={18} />}
     </button>
   )
 }
 
 const Wordmark = ({ className = '' }) => (
   <span className={`font-display italic font-semibold tracking-tight ${className}`}>
-    Todoo<span className="text-accent not-italic">.</span>
+    TodoDesu<span className="text-accent-bright not-italic">。</span>
+    <span className="ml-1 hidden align-middle text-[10px] font-normal not-italic tracking-[0.25em] text-stone-400 wa:inline"
+            aria-hidden="true">
+      トドデス
+    </span>
   </span>
 )
 
@@ -62,7 +66,7 @@ export default function AppShell({ children }) {
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-56 flex-col border-r border-stone-200/70 px-4 py-6 md:flex dark:border-night-edge">
         <Wordmark className="px-3 text-2xl" />
         <nav className="mt-8 flex flex-col gap-1">
-          {TABS.map(({ to, label, icon: Icon }) => (
+          {TABS.map(({ to, label, jp, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
@@ -77,6 +81,10 @@ export default function AppShell({ children }) {
             >
               <Icon size={18} />
               {label}
+              <span className="ml-auto hidden text-[10px] tracking-[0.2em] opacity-50 wa:inline"
+            aria-hidden="true">
+                {jp}
+              </span>
             </NavLink>
           ))}
         </nav>
@@ -108,6 +116,8 @@ export default function AppShell({ children }) {
       >
         <div className="grid grid-cols-4">
           {TABS.map(({ to, label, icon: Icon }) => (
+            // mobile tabs stay English-only — no space for the jp accent
+
             <NavLink
               key={to}
               to={to}

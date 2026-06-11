@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
+@custom-variant wa (&:where([data-theme="wa"], [data-theme="wa"] *));
 
 @theme {
   --font-sans: "Schibsted Grotesk", "Noto Sans Thai", ui-sans-serif, system-ui, sans-serif;
@@ -33,6 +34,62 @@
   button {
     font: inherit;
     color: inherit;
+  }
+}
+
+/* ── Wa mode (和) — washi paper, sumi ink, one vermillion accent ──────────────
+   The semantic tokens are CSS variables, so overriding them re-skins every
+   component; the details below (ensō ring, brush strike, hanko) are gated on
+   [data-theme="wa"] and invisible in the other themes. */
+[data-theme="wa"] {
+  --color-paper: #f5f0e8; /* shironeri — unbleached washi */
+  --color-card: #fbf7ef;
+  --color-ink: #2c2926; /* sumi ink, never pure black */
+  --color-accent: #bc3a22; /* dark vermillion — 4.9:1 on washi (AA) */
+  --color-accent-bright: #e34234; /* shu-iro — fills, stamps, large marks */
+  --font-display: "Shippori Mincho", "Noto Sans Thai", Georgia, serif;
+  --font-sans: "Zen Kaku Gothic New", "Noto Sans Thai", ui-sans-serif, system-ui, sans-serif;
+}
+[data-theme="wa"] ::selection {
+  background: #f3c9bd;
+  color: #2c2926;
+}
+/* stronger paper grain in wa */
+[data-theme="wa"] body::after {
+  opacity: 0.07;
+}
+
+/* ensō — the focus ring's track becomes a brush circle whose ends never meet */
+[data-theme="wa"] .enso-track {
+  stroke-dasharray: calc(var(--ring-c) * 0.92) calc(var(--ring-c) * 0.08);
+  stroke-dashoffset: calc(var(--ring-c) * -0.04);
+  stroke-linecap: round;
+}
+
+/* brush strikethrough for completed tasks (replaces line-through) */
+[data-theme="wa"] .wa-strike {
+  text-decoration: none;
+  position: relative;
+}
+[data-theme="wa"] .wa-strike::after {
+  content: "";
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  top: 50%;
+  height: 0.34em;
+  transform: rotate(-1.4deg);
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 10' preserveAspectRatio='none'%3E%3Cpath d='M2 6 Q 18 3.2 42 5.2 T 86 4.4 Q 104 4 118 6.2' stroke='%232c2926' stroke-width='3.4' stroke-linecap='round' fill='none' opacity='0.75'/%3E%3C/svg%3E")
+    no-repeat center / 100% 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

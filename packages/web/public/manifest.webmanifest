@@ -1,6 +1,6 @@
 {
-  "name": "Todoo",
-  "short_name": "Todoo",
+  "name": "TodoDesu",
+  "short_name": "TodoDesu",
   "description": "A quiet little place for everything you need to do.",
   "start_url": "./",
   "scope": "./",
@@ -8,7 +8,16 @@
   "background_color": "#f7f5f1",
   "theme_color": "#1c1917",
   "icons": [
-    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }

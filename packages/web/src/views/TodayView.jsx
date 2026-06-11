@@ -44,7 +44,13 @@ export default function TodayView() {
   return (
     <div>
       <header className="mb-6 mt-4 md:mt-0">
-        <h1 className="font-display text-[2rem] font-semibold leading-tight">Today</h1>
+        <h1 className="font-display text-[2rem] font-semibold leading-tight">
+          Today
+          <span className="ml-2.5 hidden align-middle text-base font-normal tracking-[0.2em] text-stone-300 wa:inline dark:text-stone-600"
+            aria-hidden="true">
+            今日
+          </span>
+        </h1>
         <p className="mt-0.5 text-sm text-stone-400 dark:text-stone-500">
           {format(now, 'EEEE, d MMMM')}
         </p>

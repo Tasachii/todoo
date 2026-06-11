@@ -142,7 +142,7 @@ export default function SettingsSheet({ open, onClose }) {
               </section>
 
               <p className="text-center text-[11px] text-stone-300 dark:text-stone-600">
-                Todoo {isStandalone ? '· standalone' : ''} · your data never leaves your devices
+                TodoDesu {isStandalone ? '· standalone' : ''} · your data never leaves your devices
               </p>
             </div>
           </motion.div>

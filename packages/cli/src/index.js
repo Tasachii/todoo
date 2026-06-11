@@ -337,7 +337,7 @@ async function cmdServer(action) {
 
 program
   .name('todo')
-  .description('todoo CLI')
+  .description('TodoDesu CLI')
   .version('0.1.0')
   .action(cmdDefault)
 

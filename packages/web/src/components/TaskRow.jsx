@@ -75,7 +75,7 @@ export default function TaskRow({ task, swipeable = true }) {
         <div className="min-w-0 flex-1">
           <p
             className={`truncate text-[15px] leading-snug ${
-              done ? 'text-stone-400 line-through dark:text-stone-500' : ''
+              done ? 'wa-strike text-stone-400 line-through dark:text-stone-500' : ''
             }`}
           >
             {task.title}
@@ -96,6 +96,19 @@ export default function TaskRow({ task, swipeable = true }) {
           <span className="shrink-0 text-xs font-semibold tracking-wider text-accent">
             {'!'.repeat(task.priority)}
           </span>
+        )}
+
+        {/* hanko stamp — wa mode's completion mark (hidden in other themes) */}
+        {done && (
+          <motion.span
+            initial={{ scale: 1.7, opacity: 0, rotate: 16 }}
+            animate={{ scale: 1, opacity: 1, rotate: 4 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 17 }}
+            aria-hidden="true"
+            className="hidden h-6 w-6 shrink-0 select-none items-center justify-center rounded-[5px] border-[1.5px] border-accent-bright text-[11px] font-bold text-accent-bright wa:flex"
+          >
+            完
+          </motion.span>
         )}
       </motion.div>
     </motion.li>
