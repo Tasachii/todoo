@@ -76,6 +76,9 @@ The server never computes "today" — clients always pass explicit time ranges i
 ## Errors
 Non-2xx responses: `{"error": {"code": "NOT_FOUND" | "VALIDATION" | "CONFLICT" | "INTERNAL", "message": "..."}}`
 
+Bodies are validated strictly: unknown fields, malformed JSON, and empty bodies that
+claim `application/json` are all rejected with `400 VALIDATION`.
+
 ## Server behavior
 - Binds `127.0.0.1` by default. Set `TODOO_HOST=0.0.0.0` to allow same-Wi-Fi devices (trusted networks only — there is no auth in v1).
 - DB file: `~/.todoo/data.db` (override with `TODOO_DB`, use `:memory:` in tests).

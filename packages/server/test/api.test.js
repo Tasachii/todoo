@@ -33,14 +33,14 @@ describe('tasks CRUD', () => {
     expect(task.completed_at).toBeNull()
   })
 
-  it('rejects empty titles and strips unknown fields', async () => {
+  it('rejects empty titles and unknown fields', async () => {
     const empty = await app.inject({ method: 'POST', url: '/api/tasks', body: { title: '' } })
     expect(empty.statusCode).toBe(400)
     expect(empty.json().error.code).toBe('VALIDATION')
-    // Fastify's default Ajv config removes additionalProperties instead of rejecting
+
     const unknown = await app.inject({ method: 'POST', url: '/api/tasks', body: { title: 'x', nope: 1 } })
-    expect(unknown.statusCode).toBe(201)
-    expect(unknown.json().task.nope).toBeUndefined()
+    expect(unknown.statusCode).toBe(400)
+    expect(unknown.json().error.code).toBe('VALIDATION')
   })
 
   it('lists with status and due range filters', async () => {

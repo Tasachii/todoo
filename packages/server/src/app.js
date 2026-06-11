@@ -10,7 +10,14 @@ import settingsRoutes from './routes/settings.js'
 export const VERSION = '0.1.0'
 
 export function buildApp({ db, logger = false } = {}) {
-  const app = Fastify({ logger })
+  const app = Fastify({
+    logger,
+    // Fastify's default Ajv strips unknown body fields silently
+    // (removeAdditional). Reject them instead so client typos surface
+    // as 400 VALIDATION rather than data quietly not being saved.
+    // customOptions is merged over Fastify's defaults, so only override this key.
+    ajv: { customOptions: { removeAdditional: false } },
+  })
   app.decorate('db', db)
 
   app.setErrorHandler((err, req, reply) => {

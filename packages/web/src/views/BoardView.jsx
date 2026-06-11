@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
+  KeyboardSensor,
   PointerSensor,
   TouchSensor,
   closestCorners,
@@ -9,7 +10,12 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { subDays } from 'date-fns'
 import { useUI } from '../App.jsx'
@@ -59,9 +65,23 @@ function SortableCard({ task }) {
       {...attributes}
       {...listeners}
       onClick={() => openDetail(task.id)}
-      className={`cursor-grab list-none touch-manipulation active:cursor-grabbing ${isDragging ? 'opacity-30' : ''}`}
+      className={`relative cursor-grab list-none touch-manipulation active:cursor-grabbing ${isDragging ? 'opacity-30' : ''}`}
     >
       <Card task={task} />
+      {/* Enter/Space on the card lifts it for keyboard drag, so give keyboard
+          users a dedicated control to open details (visible only when focused). */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          openDetail(task.id)
+        }}
+        onPointerDownCapture={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        aria-label={`Open details for "${task.title}"`}
+        className="sr-only rounded-lg bg-stone-900 px-2.5 py-1 text-xs font-medium text-stone-50 focus-visible:not-sr-only focus-visible:absolute focus-visible:right-2 focus-visible:top-2 dark:bg-stone-100 dark:text-stone-900"
+      >
+        Details
+      </button>
     </li>
   )
 }
@@ -97,7 +117,9 @@ export default function BoardView() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    // space/enter lifts a focused card, arrows move it, space/enter drops
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
   const byColumn = useMemo(() => {
