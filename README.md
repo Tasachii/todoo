@@ -16,8 +16,13 @@ reflected in the next `todo list`.
 ## Features
 
 ### Task management
-- Quick-add bar on the web (type, press Enter) and `todo add` in the terminal, with
-  natural-language dates such as `tomorrow 6pm`, `fri 14:00`, or `25/12`
+- Quick-add bar on the web (type, press Enter) and `todo add` in the terminal — both
+  understand natural-language dates: type "pay rent tomorrow 6pm" and the date is
+  detected while you type, shown as a chip, and stripped from the title (with a
+  "keep as text" escape hatch)
+- Search everything (titles and notes) from the magnifier button or the `/` key
+- Keyboard shortcuts: `n` new task, `1–4` switch views, `/` search, `esc` closes
+  any sheet
 - Tasks carry a due date and time, free-form notes, and a priority (none / low / medium / high)
 - Swipe right on a task to complete it, swipe left to delete; both actions show a
   five-second Undo toast

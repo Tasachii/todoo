@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useQueryClient } from '@tanstack/react-query'
 import { api, isStandalone } from '../api/client.js'
@@ -15,6 +15,13 @@ export default function SettingsSheet({ open, onClose }) {
   const fileRef = useRef(null)
   const [message, setMessage] = useState(null) // { tone: 'ok' | 'error', text }
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
 
   const exportBackup = async () => {
     setBusy(true)

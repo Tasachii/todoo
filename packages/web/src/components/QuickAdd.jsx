@@ -1,22 +1,66 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTaskMutations } from '../hooks/useTasks.js'
-import { fromLocalInput } from '../lib/dates.js'
+import { fromLocalInput, formatDue } from '../lib/dates.js'
 import { PlusIcon, ClockIcon } from './icons.jsx'
 
 export default function QuickAdd() {
   const { create } = useTaskMutations()
+  const inputRef = useRef(null)
   const [title, setTitle] = useState('')
   const [due, setDue] = useState('')
   const [showDue, setShowDue] = useState(false)
+  const [detected, setDetected] = useState(null) // { due_at, matched, title }
+  const [keepAsText, setKeepAsText] = useState(false)
 
-  const submit = (e) => {
+  // the global `n` shortcut focuses the bar
+  useEffect(() => {
+    const focus = () => inputRef.current?.focus()
+    window.addEventListener('tododesu:quickadd', focus)
+    return () => window.removeEventListener('tododesu:quickadd', focus)
+  }, [])
+
+  // Detect natural-language dates while typing ("pay rent tomorrow 6pm").
+  // The parser is its own lazy chunk, fetched on the first keystroke.
+  useEffect(() => {
+    if (!title.trim()) {
+      setDetected(null)
+      return
+    }
+    let alive = true
+    const t = setTimeout(async () => {
+      const { detectDue } = await import('../lib/quickdate.js')
+      if (alive) setDetected(detectDue(title))
+    }, 200)
+    return () => {
+      alive = false
+      clearTimeout(t)
+    }
+  }, [title])
+
+  // an explicit date from the picker always wins over the detected one
+  const useDetected = Boolean(detected) && !keepAsText && !due
+
+  const submit = async (e) => {
     e.preventDefault()
-    const trimmed = title.trim()
-    if (!trimmed) return
-    create.mutate({ title: trimmed, due_at: fromLocalInput(due) })
+    // Fast Enter can beat the 200ms debounce — detect synchronously so a
+    // typed date is never silently dropped (the module is cached by now).
+    let d = detected
+    if (!d && !due && !keepAsText && title.trim()) {
+      const { detectDue } = await import('../lib/quickdate.js')
+      d = detectDue(title)
+    }
+    const usingDetected = Boolean(d) && !keepAsText && !due
+    const finalTitle = (usingDetected ? d.title : title).trim()
+    if (!finalTitle) return
+    create.mutate({
+      title: finalTitle,
+      due_at: due ? fromLocalInput(due) : usingDetected ? d.due_at : null,
+    })
     setTitle('')
     setDue('')
     setShowDue(false)
+    setDetected(null)
+    setKeepAsText(false)
   }
 
   return (
@@ -29,9 +73,10 @@ export default function QuickAdd() {
           <PlusIcon size={18} />
         </span>
         <input
+          ref={inputRef}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Add a task, press Enter…"
+          placeholder="Add a task — try “pay rent tomorrow 6pm”"
           enterKeyHint="done"
           className="flex-1 bg-transparent text-[15px] outline-none placeholder:text-stone-400 dark:placeholder:text-stone-500"
         />
@@ -44,6 +89,26 @@ export default function QuickAdd() {
           <ClockIcon size={18} />
         </button>
       </div>
+
+      {useDetected && (
+        <div className="flex items-center gap-2 border-t border-stone-100 px-4 py-2 text-xs dark:border-night-edge">
+          <span className="flex items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 font-medium text-accent">
+            <ClockIcon size={13} />
+            {formatDue(detected.due_at)}
+          </span>
+          <span className="truncate text-stone-400 dark:text-stone-500">
+            from “{detected.matched}”
+          </span>
+          <button
+            type="button"
+            onClick={() => setKeepAsText(true)}
+            className="ml-auto shrink-0 text-stone-400 underline-offset-2 hover:text-stone-600 hover:underline dark:hover:text-stone-300"
+          >
+            keep as text
+          </button>
+        </div>
+      )}
+
       {showDue && (
         <div className="border-t border-stone-100 px-4 py-2.5 dark:border-night-edge">
           <input

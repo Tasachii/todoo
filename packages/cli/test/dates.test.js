@@ -68,4 +68,16 @@ describe('parseDue', () => {
     const d = new Date(result)
     expect(d.getHours()).toBe(9)
   })
+
+  it('never schedules into the past', () => {
+    const evening = new Date('2026-06-10T20:00:00') // after the 18:00 default
+    const today = new Date(parseDue('today', evening))
+    expect(today > evening).toBe(true)
+    expect(today.getHours()).toBe(18)
+
+    const friAfternoon = new Date('2026-06-12T15:00:00') // a Friday, after 14:00
+    const fri = new Date(parseDue('fri 14:00', friAfternoon))
+    expect(fri.getDay()).toBe(5) // stays a Friday — next week's
+    expect(fri > friAfternoon).toBe(true)
+  })
 })

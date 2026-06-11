@@ -9,7 +9,7 @@ export default function UndoToast({ toast, onDismiss }) {
           animate={{ opacity: 1, y: 0, x: '-50%' }}
           exit={{ opacity: 0, y: 16, x: '-50%' }}
           transition={{ duration: 0.2 }}
-          className="fixed bottom-24 left-1/2 z-40 flex items-center gap-4 rounded-full bg-stone-900 py-2.5 pl-5 pr-2.5 text-sm text-stone-100 shadow-xl md:bottom-8 dark:bg-stone-100 dark:text-stone-900"
+          className="fixed bottom-24 left-1/2 z-50 flex items-center gap-4 rounded-full bg-stone-900 py-2.5 pl-5 pr-2.5 text-sm text-stone-100 shadow-xl md:bottom-8 dark:bg-stone-100 dark:text-stone-900"
         >
           {toast.label}
           <button

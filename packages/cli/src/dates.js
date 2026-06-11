@@ -21,5 +21,11 @@ export function parseDue(text, ref = new Date()) {
     date.setHours(18, 0, 0, 0)
   }
 
+  // Never schedule into the past (the 18:00 default can land before "now");
+  // an explicit weekday stays on that weekday.
+  if (date < ref) {
+    date.setDate(date.getDate() + (result.start.isCertain('weekday') ? 7 : 1))
+  }
+
   return date.toISOString()
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useUI } from '../App.jsx'
@@ -137,6 +137,13 @@ function Sheet({ task, onClose }) {
 export default function TaskDetail({ taskId, onClose }) {
   const { data: tasks } = useTasks()
   const task = tasks?.find((t) => t.id === taskId)
+
+  useEffect(() => {
+    if (!task) return
+    const onKey = (e) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [task, onClose])
 
   return (
     <AnimatePresence>

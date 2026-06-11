@@ -86,6 +86,19 @@ desktop window; both light and dark themes.
 - Cross-mode: a file exported from the server-backed web app imports cleanly into a
   standalone build, and vice versa (same payload shape by design).
 
+### Quick-add natural-language dates
+- Automated: `packages/web/test/quickdate.test.js` — phrase extraction, title
+  stripping, 18:00 default, forward dates, bare-number/date-only rejection.
+- Manual: typing "pay rent tomorrow 6pm" shows the chip within ~a keystroke pause;
+  "keep as text" stores the full title with no date; the manual date picker always
+  wins over the detected date; Thai titles with embedded English dates work.
+
+### Search and keyboard shortcuts
+- Manual: `/` opens search anywhere (except while typing in a field); results split
+  Open/Done and cap at 30; tapping a result closes search and opens its detail sheet;
+  `esc` closes search/detail/settings; `n` lands the cursor in quick-add from any
+  view; `1–4` switch views; none of the shortcuts fire while typing.
+
 ### Static hosting (GitHub Pages)
 - Build with `VITE_STANDALONE=1` and a non-root `VITE_BASE` (e.g. `/todoo/`), serve
   `dist/` under that subpath locally, and verify: page loads, JS/CSS/icon URLs all

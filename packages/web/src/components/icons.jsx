@@ -114,3 +114,9 @@ export const UploadIcon = (p) => (
     <path d="M5 19.5h14" />
   </Icon>
 )
+export const SearchIcon = (p) => (
+  <Icon {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="M15.8 15.8L20 20" />
+  </Icon>
+)

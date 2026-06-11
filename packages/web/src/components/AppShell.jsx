@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { useUI } from '../App.jsx'
 import { useTheme } from '../hooks/useTheme.js'
 import SettingsSheet from './SettingsSheet.jsx'
 import {
@@ -11,7 +12,22 @@ import {
   MoonIcon,
   AutoThemeIcon,
   GearIcon,
+  SearchIcon,
 } from './icons.jsx'
+
+function SearchButton() {
+  const { openSearch } = useUI()
+  return (
+    <button
+      onClick={openSearch}
+      title="Search (/)"
+      aria-label="Search"
+      className="flex h-9 w-9 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-200/60 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-night-edge dark:hover:text-stone-100"
+    >
+      <SearchIcon size={18} />
+    </button>
+  )
+}
 
 const TABS = [
   { to: '/', label: 'Today', jp: '今日', icon: TodayIcon },
@@ -89,6 +105,7 @@ export default function AppShell({ children }) {
           ))}
         </nav>
         <div className="mt-auto flex gap-1 px-2">
+          <SearchButton />
           <ThemeButton />
           <SettingsButton onOpen={() => setSettingsOpen(true)} />
         </div>
@@ -100,6 +117,7 @@ export default function AppShell({ children }) {
       >
         <Wordmark className="text-xl" />
         <div className="flex gap-1">
+          <SearchButton />
           <ThemeButton />
           <SettingsButton onOpen={() => setSettingsOpen(true)} />
         </div>
