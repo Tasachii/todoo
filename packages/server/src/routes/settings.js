@@ -1,7 +1,12 @@
 const DEFAULTS = {
   theme: 'auto',
+  focus_style: 'timer', // 'timer' | 'pomodoro'
   focus_duration_sec: '1500',
   break_duration_sec: '300',
+  pomodoro_work_sec: '1500',
+  pomodoro_break_sec: '300',
+  pomodoro_long_break_sec: '900',
+  pomodoro_rounds: '4',
 }
 
 function allSettings(db) {

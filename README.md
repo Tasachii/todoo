@@ -31,9 +31,11 @@ reflected in the next `todo list`.
   touch support on iPad; cards can also be reordered within a column
 - **Calendar** — month grid with markers on days that have tasks, plus an Upcoming list
   covering the next seven days
-- **Focus** — a Pomodoro-style countdown ring tied to a task, with configurable duration,
-  a completion chime, optional break timer, and daily statistics (minutes focused,
-  sessions, tasks completed)
+- **Focus** — a countdown ring tied to a task, with two styles: a plain timer
+  (15/25/45/custom minutes with an optional break) and a Pomodoro cycle (25/5 or 50/10
+  work/break rounds with a long break after the fourth round, breaks starting
+  automatically). Both play a completion chime and feed daily statistics (minutes
+  focused, sessions, tasks completed)
 
 ### Platform
 - Light and dark themes; follows the system setting by default with a manual override

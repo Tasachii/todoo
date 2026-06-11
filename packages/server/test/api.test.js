@@ -173,6 +173,9 @@ describe('settings', () => {
   it('returns defaults and merges updates', async () => {
     const before = await app.inject({ method: 'GET', url: '/api/settings' })
     expect(before.json().settings.theme).toBe('auto')
+    expect(before.json().settings.focus_style).toBe('timer')
+    expect(before.json().settings.pomodoro_work_sec).toBe('1500')
+    expect(before.json().settings.pomodoro_rounds).toBe('4')
 
     await app.inject({ method: 'PUT', url: '/api/settings', body: { theme: 'dark' } })
     const after = await app.inject({ method: 'GET', url: '/api/settings' })

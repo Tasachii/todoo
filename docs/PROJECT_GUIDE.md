@@ -132,8 +132,8 @@ hot queries: board columns and date-range filters.
 ### `settings`
 
 A plain key-value table (`key` PK, `value` TEXT). Defaults are applied at read time in
-`routes/settings.js` (`theme=auto`, `focus_duration_sec=1500`, `break_duration_sec=300`),
-so the table only stores what the user changed.
+`routes/settings.js` (`theme`, `focus_style`, timer durations, and the pomodoro
+work/break/long-break/rounds values), so the table only stores what the user changed.
 
 All timestamps everywhere are **ISO 8601 UTC strings** — SQLite stores them as TEXT, and
 lexicographic comparison on ISO strings is also chronological, which is why plain `>=` /
@@ -264,11 +264,19 @@ API failure shows a hint to run `todo server start`.
 **CalendarView** shows a month grid with dots on days that have tasks, a day-tap task
 list, and a toggleable Upcoming list for the next 7 days.
 
-**FocusView** is the most stateful view; it has four mutually exclusive UI states:
-*idle* (pick duration 15/25/45/custom + task; defaults come from `/api/settings`, the
-default task is the top of In Progress), *running* (countdown ring, "give up early"),
-*finished* (card with "Mark task done" / "Take a break" / dismiss), and *break*
-(a second, client-side-only ring). Key mechanics:
+**FocusView** is the most stateful view. A header toggle picks one of two styles
+(persisted server-side as `focus_style`, so it follows you across devices):
+
+- **Timer** — pick a duration (15/25/45/custom) and an optional task; finishing shows a
+  card with "Mark task done" / "Take a break" / dismiss.
+- **Pomodoro** — pick a work/break preset (25/5 or 50/10); finishing a work round starts
+  the break automatically (the long break after the final round), and the round counter
+  (dots, persisted in `localStorage` per day) advances when the break ends. The next
+  round is started manually so a suspended phone never fires a surprise timer.
+
+Underneath, the view has four mutually exclusive UI states — *idle*, *running* (countdown
+ring, "give up early"), *finished*, and *break* (a client-side-only ring) — with shared
+mechanics:
 
 - The active session is **server state** (`['focus-active']` query, refetched every
   minute), so closing the tab or opening another device shows the same running timer.

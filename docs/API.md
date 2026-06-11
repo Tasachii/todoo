@@ -70,7 +70,10 @@ The server never computes "today" — clients always pass explicit time ranges i
   Counts focus sessions whose `started_at` and completed tasks whose `completed_at` fall in `[from, to)`.
 
 ### Settings
-- `GET /api/settings` → `200 {"settings": {"theme": "auto", "focus_duration_sec": "1500", "break_duration_sec": "300"}}`
+- `GET /api/settings` → `200 {"settings": {...}}` — stored values merged over defaults:
+  `theme: "auto"`, `focus_style: "timer"` (`"timer" | "pomodoro"`), `focus_duration_sec: "1500"`,
+  `break_duration_sec: "300"`, `pomodoro_work_sec: "1500"`, `pomodoro_break_sec: "300"`,
+  `pomodoro_long_break_sec: "900"`, `pomodoro_rounds: "4"`. All values are strings.
 - `PUT /api/settings` body `{key: value, ...}` (merge) → `200 {"settings": {...}}`
 
 ## Errors

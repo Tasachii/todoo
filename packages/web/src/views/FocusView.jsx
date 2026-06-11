@@ -3,9 +3,31 @@ import { useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client.js'
 import { useTasks, useTaskMutations } from '../hooks/useTasks.js'
-import { localDayRange } from '../lib/dates.js'
+import { localDayRange, dayKey } from '../lib/dates.js'
 
-const PRESETS = [15, 25, 45]
+const TIMER_PRESETS = [15, 25, 45]
+// work/break minutes — the classic pomodoro and a deep-work variant
+const POMODORO_PRESETS = [
+  { work: 25, brk: 5 },
+  { work: 50, brk: 10 },
+]
+const ROUND_KEY = 'todoo-pomodoro-round'
+
+// The current round survives a reload but resets each day.
+function loadRound() {
+  const raw = localStorage.getItem(ROUND_KEY)
+  if (!raw) return 1
+  try {
+    const { round, day } = JSON.parse(raw)
+    if (day === dayKey(new Date()) && Number.isInteger(round) && round >= 1) return round
+  } catch {
+    /* corrupt — start fresh */
+  }
+  return 1
+}
+function saveRound(round) {
+  localStorage.setItem(ROUND_KEY, JSON.stringify({ round, day: dayKey(new Date()) }))
+}
 
 // Two soft sine notes — no asset files needed.
 function chime() {
@@ -86,6 +108,29 @@ function Ring({ progress, label, sub, color = 'text-accent' }) {
   )
 }
 
+function RoundDots({ round, total }) {
+  return (
+    <span
+      className="flex items-center justify-center gap-1.5"
+      role="img"
+      aria-label={`Round ${round} of ${total}`}
+    >
+      {Array.from({ length: total }, (_, i) => (
+        <span
+          key={i}
+          className={`h-1.5 w-1.5 rounded-full transition-colors ${
+            i + 1 < round
+              ? 'bg-accent'
+              : i + 1 === round
+                ? 'bg-accent/40 ring-1 ring-accent'
+                : 'bg-stone-200 dark:bg-night-edge'
+          }`}
+        />
+      ))}
+    </span>
+  )
+}
+
 const mmss = (sec) => {
   const s = Math.max(0, Math.round(sec))
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
@@ -120,10 +165,40 @@ export default function FocusView() {
   const [minutes, setMinutes] = useState(null)
   const [finished, setFinished] = useState(null) // session that just completed
   const [breakUntil, setBreakUntil] = useState(null)
+  const [breakTotal, setBreakTotal] = useState(300) // seconds, for the break ring
+  const [breakKind, setBreakKind] = useState('short') // 'short' | 'long'
+  // Captured when a break starts, so toggling the style mid-break
+  // cannot change how (or whether) the round advances.
+  const [breakMode, setBreakMode] = useState('timer')
+  const [round, setRound] = useState(loadRound)
+  // Local override so the toggle feels instant; the saved setting syncs devices.
+  const [modeChoice, setModeChoice] = useState(null)
+  const [pomoChoice, setPomoChoice] = useState(null)
+
+  const saveSettings = useMutation({
+    mutationFn: (body) => api.saveSettings(body),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['settings'] }),
+  })
+
+  const mode = modeChoice ?? settings?.focus_style ?? 'timer'
+  const setMode = (m) => {
+    setModeChoice(m)
+    saveSettings.mutate({ focus_style: m })
+  }
 
   const defaultMinutes = settings ? Math.round(Number(settings.focus_duration_sec) / 60) : 25
   const breakMinutes = settings ? Math.round(Number(settings.break_duration_sec) / 60) : 5
   const chosenMinutes = minutes ?? defaultMinutes
+
+  const workMin = pomoChoice?.work ?? Math.round(Number(settings?.pomodoro_work_sec ?? 1500) / 60)
+  const brkMin = pomoChoice?.brk ?? Math.round(Number(settings?.pomodoro_break_sec ?? 300) / 60)
+  const longMin = Math.round(Number(settings?.pomodoro_long_break_sec ?? 900) / 60)
+  const totalRounds = Math.max(1, Math.round(Number(settings?.pomodoro_rounds ?? 4)) || 4)
+  const pickPomodoro = (p) => {
+    setPomoChoice(p)
+    saveSettings.mutate({ pomodoro_work_sec: p.work * 60, pomodoro_break_sec: p.brk * 60 })
+  }
+
   const selectedTaskId = taskId === undefined ? (candidates[0]?.id ?? null) : taskId
 
   const invalidate = () => {
@@ -134,7 +209,10 @@ export default function FocusView() {
 
   const start = useMutation({
     mutationFn: () =>
-      api.focusStart({ task_id: selectedTaskId, duration_sec: chosenMinutes * 60 }),
+      api.focusStart({
+        task_id: selectedTaskId,
+        duration_sec: mode === 'pomodoro' ? workMin * 60 : chosenMinutes * 60,
+      }),
     onSuccess: () => {
       setFinished(null)
       invalidate()
@@ -159,44 +237,104 @@ export default function FocusView() {
       chime()
       setFinished(session)
       stop.mutate({ id: session.id, completed: true })
+      if (mode === 'pomodoro') {
+        // classic pomodoro: the break starts itself; the long one after the last round
+        const isLong = round >= totalRounds
+        const sec = (isLong ? longMin : brkMin) * 60
+        setBreakKind(isLong ? 'long' : 'short')
+        setBreakMode('pomodoro')
+        setBreakTotal(sec)
+        setBreakUntil(Date.now() + sec * 1000)
+      }
     }
-  }, [session, remaining, stop])
+  }, [session, remaining, stop, mode, round, totalRounds, brkMin, longMin])
 
   const breakRemaining = breakUntil ? (breakUntil - now) / 1000 : 0
-  useEffect(() => {
-    if (breakUntil && breakRemaining <= 0) {
-      chime()
-      setBreakUntil(null)
+  // end exactly once per break (mirrors finishedFor); breakUntil doubles as the break's id
+  const breakEndedFor = useRef(null)
+  const endBreak = () => {
+    if (breakUntil == null || breakEndedFor.current === breakUntil) return
+    breakEndedFor.current = breakUntil
+    setBreakUntil(null)
+    if (breakMode === 'pomodoro') {
+      const next = breakKind === 'long' ? 1 : round + 1
+      setRound(next)
+      saveRound(next)
+      setFinished(null)
     }
-  }, [breakUntil, breakRemaining])
+  }
+  useEffect(() => {
+    if (breakUntil && breakRemaining <= 0 && breakEndedFor.current !== breakUntil) {
+      chime()
+      endBreak()
+    }
+  }, [breakUntil, breakRemaining, breakMode, breakKind, round]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const focusedMin = Math.round((stats?.focus_sec ?? 0) / 60)
 
   return (
     <div className="flex flex-col">
-      <header className="mb-8 mt-4 md:mt-0">
-        <h1 className="font-display text-[2rem] font-semibold leading-tight">Focus</h1>
-        <p className="mt-0.5 text-sm text-stone-400 dark:text-stone-500">
-          {focusedMin > 0
-            ? `${focusedMin} min focused today · ${stats.focus_sessions} session${stats.focus_sessions === 1 ? '' : 's'}`
-            : 'One task, one timer, nothing else.'}
-        </p>
+      <header className="mb-8 mt-4 flex items-end justify-between md:mt-0">
+        <div>
+          <h1 className="font-display text-[2rem] font-semibold leading-tight">Focus</h1>
+          <p className="mt-0.5 text-sm text-stone-400 dark:text-stone-500">
+            {focusedMin > 0
+              ? `${focusedMin} min focused today · ${stats.focus_sessions} session${stats.focus_sessions === 1 ? '' : 's'}`
+              : 'One task, one timer, nothing else.'}
+          </p>
+        </div>
+        <div className="flex rounded-full bg-stone-100 p-1 text-xs font-medium dark:bg-night-edge">
+          {[
+            { value: 'timer', label: 'Timer' },
+            { value: 'pomodoro', label: 'Pomodoro' },
+          ].map((m) => (
+            <button
+              key={m.value}
+              onClick={() => setMode(m.value)}
+              className={`rounded-full px-3.5 py-1.5 transition-all ${
+                mode === m.value
+                  ? 'bg-card text-stone-900 shadow-sm dark:bg-night-card dark:text-stone-100'
+                  : 'text-stone-400'
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
       </header>
 
       {breakUntil ? (
         <div className="text-center">
           <Ring
-            progress={breakRemaining / (breakMinutes * 60)}
+            progress={breakRemaining / breakTotal}
             label={mmss(breakRemaining)}
-            sub="Break — breathe."
+            sub={breakKind === 'long' ? 'Long break — stretch.' : 'Break — breathe.'}
             color="text-emerald-500"
           />
-          <button
-            onClick={() => setBreakUntil(null)}
-            className="mt-8 rounded-full border border-stone-300 px-6 py-2.5 text-sm text-stone-500 transition-colors hover:border-stone-400 dark:border-stone-600 dark:text-stone-400"
-          >
-            Skip break
-          </button>
+          {breakMode === 'pomodoro' && (
+            <div className="mt-5">
+              <RoundDots round={round} total={totalRounds} />
+            </div>
+          )}
+          <div className="mx-auto mt-7 flex w-full max-w-xs flex-col gap-2.5">
+            {breakMode === 'pomodoro' && finished?.task_id && (
+              <button
+                onClick={() => {
+                  patch.mutate({ id: finished.task_id, status: 'done' })
+                  setFinished(null)
+                }}
+                className="rounded-xl bg-stone-900 py-2.5 text-sm font-medium text-stone-50 dark:bg-stone-100 dark:text-stone-900"
+              >
+                Mark task done
+              </button>
+            )}
+            <button
+              onClick={endBreak}
+              className="rounded-full border border-stone-300 px-6 py-2.5 text-sm text-stone-500 transition-colors hover:border-stone-400 dark:border-stone-600 dark:text-stone-400"
+            >
+              Skip break
+            </button>
+          </div>
         </div>
       ) : session ? (
         <div className="text-center">
@@ -205,9 +343,14 @@ export default function FocusView() {
             label={mmss(remaining)}
             sub={session.task_title ?? 'Focusing'}
           />
+          {mode === 'pomodoro' && (
+            <div className="mt-5">
+              <RoundDots round={round} total={totalRounds} />
+            </div>
+          )}
           <button
             onClick={() => stop.mutate({ id: session.id, completed: false })}
-            className="mt-8 rounded-full border border-stone-300 px-6 py-2.5 text-sm text-stone-500 transition-colors hover:border-rose-400 hover:text-rose-500 dark:border-stone-600 dark:text-stone-400"
+            className="mt-7 rounded-full border border-stone-300 px-6 py-2.5 text-sm text-stone-500 transition-colors hover:border-rose-400 hover:text-rose-500 dark:border-stone-600 dark:text-stone-400"
           >
             Give up early
           </button>
@@ -233,6 +376,9 @@ export default function FocusView() {
             <button
               onClick={() => {
                 setFinished(null)
+                setBreakKind('short')
+                setBreakMode('timer')
+                setBreakTotal(breakMinutes * 60)
                 setBreakUntil(Date.now() + breakMinutes * 60_000)
               }}
               className="rounded-xl bg-emerald-500/10 py-2.5 text-sm font-medium text-emerald-600 dark:text-emerald-400"
@@ -249,34 +395,65 @@ export default function FocusView() {
         </div>
       ) : (
         <div className="mx-auto w-full max-w-sm">
-          <Ring progress={1} label={mmss(chosenMinutes * 60)} sub="Ready when you are." />
+          <Ring
+            progress={1}
+            label={mmss((mode === 'pomodoro' ? workMin : chosenMinutes) * 60)}
+            sub={mode === 'pomodoro' ? `Round ${round} of ${totalRounds}` : 'Ready when you are.'}
+          />
 
           <div className="mt-8 space-y-4">
-            <div className="flex justify-center gap-2">
-              {PRESETS.map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setMinutes(m)}
-                  className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${
-                    chosenMinutes === m
-                      ? 'bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-900'
-                      : 'bg-stone-100 text-stone-500 hover:text-stone-800 dark:bg-night-edge dark:text-stone-400'
-                  }`}
-                >
-                  {m}m
-                </button>
-              ))}
-              <input
-                type="number"
-                min="1"
-                max="240"
-                placeholder="…"
-                value={PRESETS.includes(chosenMinutes) ? '' : chosenMinutes}
-                onChange={(e) => e.target.value && setMinutes(Number(e.target.value))}
-                className="w-16 rounded-full bg-stone-100 px-4 py-2 text-center text-sm outline-none dark:bg-night-edge"
-                aria-label="Custom minutes"
-              />
-            </div>
+            {mode === 'pomodoro' ? (
+              <>
+                <div className="flex justify-center">
+                  <RoundDots round={round} total={totalRounds} />
+                </div>
+                <div className="flex justify-center gap-2">
+                  {POMODORO_PRESETS.map((p) => (
+                    <button
+                      key={p.work}
+                      onClick={() => pickPomodoro(p)}
+                      className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${
+                        workMin === p.work && brkMin === p.brk
+                          ? 'bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-900'
+                          : 'bg-stone-100 text-stone-500 hover:text-stone-800 dark:bg-night-edge dark:text-stone-400'
+                      }`}
+                    >
+                      {p.work} / {p.brk}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-center text-xs text-stone-400 dark:text-stone-500">
+                  {workMin} min focus · {brkMin} min break · {longMin} min long break after round{' '}
+                  {totalRounds}
+                </p>
+              </>
+            ) : (
+              <div className="flex justify-center gap-2">
+                {TIMER_PRESETS.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMinutes(m)}
+                    className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${
+                      chosenMinutes === m
+                        ? 'bg-stone-900 text-stone-50 dark:bg-stone-100 dark:text-stone-900'
+                        : 'bg-stone-100 text-stone-500 hover:text-stone-800 dark:bg-night-edge dark:text-stone-400'
+                    }`}
+                  >
+                    {m}m
+                  </button>
+                ))}
+                <input
+                  type="number"
+                  min="1"
+                  max="240"
+                  placeholder="…"
+                  value={TIMER_PRESETS.includes(chosenMinutes) ? '' : chosenMinutes}
+                  onChange={(e) => e.target.value && setMinutes(Number(e.target.value))}
+                  className="w-16 rounded-full bg-stone-100 px-4 py-2 text-center text-sm outline-none dark:bg-night-edge"
+                  aria-label="Custom minutes"
+                />
+              </div>
+            )}
 
             <select
               value={selectedTaskId ?? ''}
@@ -297,8 +474,19 @@ export default function FocusView() {
               disabled={start.isPending}
               className="w-full rounded-xl bg-accent py-3.5 text-[15px] font-semibold text-white shadow-lg shadow-amber-600/20 transition-transform hover:scale-[1.01] active:scale-[0.99]"
             >
-              Start focusing
+              {mode === 'pomodoro' && round > 1 ? `Start round ${round}` : 'Start focusing'}
             </button>
+            {mode === 'pomodoro' && round > 1 && (
+              <button
+                onClick={() => {
+                  setRound(1)
+                  saveRound(1)
+                }}
+                className="w-full py-1 text-center text-xs text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
+              >
+                Reset cycle
+              </button>
+            )}
             {start.isError && (
               <p className="text-center text-xs text-rose-500">{start.error.message}</p>
             )}
