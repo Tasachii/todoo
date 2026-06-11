@@ -6,6 +6,10 @@ dist/
 coverage/
 .omc/
 
+# Playwright
+playwright-report/
+test-results/
+
 # iOS (Capacitor) — generated/user-specific files; the project itself is committed
 packages/web/ios/App/App/public/
 packages/web/ios/App/App/capacitor.config.json

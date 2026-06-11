@@ -17,3 +17,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: E2E smoke (real server + real build + real browser)
+        run: npm run test:e2e -w @todoo/web

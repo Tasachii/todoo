@@ -117,6 +117,7 @@ enables WAL mode and foreign keys, and purges old soft-deleted rows on startup.
 | `created_at` | TEXT | ISO UTC, set on insert |
 | `completed_at` | TEXT | Set when status becomes `done`, cleared when it leaves `done` |
 | `deleted_at` | TEXT | Soft-delete marker; NULL = live — see §7.3 |
+| `repeat` | TEXT | NULL or `daily`/`weekly`/`monthly`; requires `due_at`. Completing a repeating task inserts its next occurrence (due advanced past "now", time of day kept) |
 
 Partial indexes on `status` and `due_at` (both `WHERE deleted_at IS NULL`) cover the two
 hot queries: board columns and date-range filters.
@@ -462,8 +463,12 @@ npm run app:open     # open the iOS project in Xcode
 **Testing strategy.** Server tests (`packages/server/test/api.test.js`) build the app
 with an in-memory DB and exercise every endpoint through `fastify.inject()` — full
 HTTP semantics, no real port. CLI tests cover `parseDue()`, the most fragile logic.
-The web UI is covered by a manual checklist per milestone (Safari first, iPhone SE width,
-both themes, timer-after-backgrounding) — see `docs/PLAN.md`.
+The engine suite pins the standalone engine to the server's behavior. An E2E smoke
+suite (`packages/web/e2e/`, Playwright) drives the production build against a real
+server in headless Chromium — quick-add date detection, complete/undo, search, the Wa
+theme, and recurring spawn — and runs in CI. The rest of the web UI is covered by the
+manual checklist in `docs/QA_PLAN.md` (Safari first, iPhone SE width, both themes,
+timer-after-backgrounding).
 
 **Files on disk at runtime** (all under `~/.todoo/`): `data.db` (+ WAL/SHM sidecars),
 `last-list.json`, `last-action.json`, `server.pid`. Backing up Todoo = copying `data.db`.

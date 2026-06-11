@@ -12,6 +12,7 @@ not aspirational process.
 | CLI unit | `packages/cli/test/dates.test.js` | Natural-language date parsing (most fragile logic) | `npm test`, CI |
 | CLI integration | `packages/cli/test/api.test.js` | The CLI's HTTP wrapper against a real in-process server — bodyless DELETE regression guard, error propagation | `npm test`, CI |
 | Standalone engine | `packages/web/test/local.test.js` | Parity with the server, case by case: business rules, persistence, corrupt-snapshot recovery, clock-skew clamping, id reconciliation | `npm test`, CI |
+| E2E smoke | `packages/web/e2e/smoke.spec.js` | The real build + real server + headless Chromium: quick-add with date detection, complete/undo, search, theme cycle into Wa, board columns, Pomodoro toggle, recurring spawn | `npm run test:e2e -w @todoo/web`, CI |
 
 Rules:
 
