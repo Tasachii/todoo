@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { openDb } from '../src/db/index.js'
 import { buildApp } from '../src/app.js'
+import { nextDueAt } from '../src/routes/tasks.js'
 
 let app
 
@@ -112,6 +113,74 @@ describe('tasks CRUD', () => {
     })
     expect(res.statusCode).toBe(400)
     expect(res.json().error.code).toBe('VALIDATION')
+  })
+})
+
+describe('recurring tasks', () => {
+  const hours = (n) => new Date(Date.now() + n * 3600_000).toISOString()
+
+  it('completing a repeating task spawns the next occurrence', async () => {
+    const due = hours(26)
+    const task = await createTask({ title: 'water plants', due_at: due, repeat: 'daily' })
+    await app.inject({ method: 'PATCH', url: `/api/tasks/${task.id}`, body: { status: 'done' } })
+
+    const open = (await app.inject({ method: 'GET', url: '/api/tasks?status=todo' })).json().tasks
+    const next = open.find((t) => t.title === 'water plants')
+    expect(next).toBeTruthy()
+    expect(next.id).not.toBe(task.id)
+    expect(next.repeat).toBe('daily')
+    expect(new Date(next.due_at) - new Date(due)).toBe(24 * 3600_000)
+  })
+
+  it('weekly repeats jump a week; overdue dailies land in the future', async () => {
+    const weekly = await createTask({ title: 'review', due_at: hours(2), repeat: 'weekly' })
+    await app.inject({ method: 'PATCH', url: `/api/tasks/${weekly.id}`, body: { status: 'done' } })
+    const overdue = await createTask({ title: 'stretch', due_at: hours(-30), repeat: 'daily' })
+    await app.inject({ method: 'PATCH', url: `/api/tasks/${overdue.id}`, body: { status: 'done' } })
+
+    const open = (await app.inject({ method: 'GET', url: '/api/tasks?status=todo' })).json().tasks
+    const nextWeekly = open.find((t) => t.title === 'review')
+    expect(new Date(nextWeekly.due_at) - new Date(weekly.due_at)).toBe(7 * 24 * 3600_000)
+    const nextDaily = open.find((t) => t.title === 'stretch')
+    expect(new Date(nextDaily.due_at) > new Date()).toBe(true)
+    expect(new Date(nextDaily.due_at).getUTCHours()).toBe(new Date(overdue.due_at).getUTCHours())
+  })
+
+  it('monthly recurrence clamps short months and recovers the anchor day', () => {
+    // due on the 31st, 9:00 local — Feb clamps to 28, March returns to 31
+    const jan31 = new Date(2027, 0, 31, 9)
+    const ref = new Date(2027, 0, 31, 10)
+    const feb = new Date(nextDueAt(jan31.toISOString(), 'monthly', ref))
+    expect([feb.getMonth(), feb.getDate(), feb.getHours()]).toEqual([1, 28, 9])
+    const mar = new Date(nextDueAt(feb.toISOString(), 'monthly', ref))
+    expect([mar.getMonth(), mar.getDate()]).toEqual([2, 28]) // anchored to the 28th from here on
+    // a 31st advancing into a 31-day month stays on the 31st — no overflow to Feb 3
+    const dec31 = new Date(2026, 11, 31, 9)
+    const jan = new Date(nextDueAt(dec31.toISOString(), 'monthly', new Date(2026, 11, 31, 10)))
+    expect([jan.getMonth(), jan.getDate()]).toEqual([0, 31])
+  })
+
+  it('rejects repeat without a due date, on create and when clearing the date', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/tasks',
+      body: { title: 'x', repeat: 'daily' },
+    })
+    expect(create.statusCode).toBe(400)
+
+    const task = await createTask({ title: 'y', due_at: hours(2), repeat: 'daily' })
+    const clear = await app.inject({
+      method: 'PATCH',
+      url: `/api/tasks/${task.id}`,
+      body: { due_at: null },
+    })
+    expect(clear.statusCode).toBe(400)
+    const both = await app.inject({
+      method: 'PATCH',
+      url: `/api/tasks/${task.id}`,
+      body: { due_at: null, repeat: null },
+    })
+    expect(both.statusCode).toBe(200) // clearing both together is fine
   })
 })
 

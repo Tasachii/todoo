@@ -17,6 +17,12 @@ const PRIORITIES = [
   { value: 2, label: '!!' },
   { value: 3, label: '!!!' },
 ]
+const REPEATS = [
+  { value: null, label: 'Never' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+]
 
 function Field({ label, children }) {
   return (
@@ -44,7 +50,7 @@ function Sheet({ task, onClose }) {
     >
       {options.map((opt) => (
         <button
-          key={opt.value}
+          key={String(opt.value)}
           onClick={() => onPick(opt.value)}
           className={`rounded-lg py-1.5 text-sm transition-all ${
             current === opt.value
@@ -85,9 +91,23 @@ function Sheet({ task, onClose }) {
           <input
             type="datetime-local"
             value={toLocalInput(task.due_at)}
-            onChange={(e) => save({ due_at: fromLocalInput(e.target.value) })}
+            onChange={(e) => {
+              const due_at = fromLocalInput(e.target.value)
+              // a repeat rule cannot outlive its date
+              save(due_at ? { due_at } : { due_at, repeat: null })
+            }}
             className="w-full rounded-xl bg-stone-100 px-3.5 py-2.5 text-sm outline-none dark:bg-night-edge dark:[color-scheme:dark]"
           />
+        </Field>
+
+        <Field label="Repeat">
+          {task.due_at ? (
+            segmented(REPEATS, task.repeat ?? null, (v) => save({ repeat: v }))
+          ) : (
+            <p className="rounded-xl bg-stone-100 px-3.5 py-2.5 text-sm text-stone-400 dark:bg-night-edge dark:text-stone-500">
+              Set a date first — repeats need somewhere to start.
+            </p>
+          )}
         </Field>
 
         <Field label="Priority">

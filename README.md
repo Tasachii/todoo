@@ -34,6 +34,8 @@ reflected in the next `todo list`.
 - Keyboard shortcuts: `n` new task, `1–4` switch views, `/` search, `esc` closes
   any sheet
 - Tasks carry a due date and time, free-form notes, and a priority (none / low / medium / high)
+- **Recurring tasks** — daily, weekly, or monthly; completing one schedules the next
+  occurrence automatically (always in the future, even if you finished late)
 - Swipe right on a task to complete it, swipe left to delete; both actions show a
   five-second Undo toast
 - Deletion is always a soft delete; deleted tasks are recoverable for 30 days before
@@ -168,6 +170,7 @@ todo add "title"              Add a task
   -d, --due <text>            Natural-language due date ("tomorrow 6pm", "fri 14:00")
   -p, --priority <level>      low | med | high
   -n, --notes <text>          Attach notes
+  -r, --repeat <rule>         daily | weekly | monthly (requires --due)
 todo list --all               All tasks grouped by status
 todo done <n>                 Complete task <n> from the last printed list
 todo start <n>                Move task <n> to In progress

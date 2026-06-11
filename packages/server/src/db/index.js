@@ -35,6 +35,11 @@ const MIGRATIONS = [
     value TEXT NOT NULL
   );
   `,
+  // v2 — recurring tasks: completing a task with a repeat rule spawns the next occurrence
+  `
+  ALTER TABLE tasks ADD COLUMN repeat TEXT
+    CHECK (repeat IS NULL OR repeat IN ('daily','weekly','monthly'));
+  `,
 ]
 
 export function defaultDbPath() {

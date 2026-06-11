@@ -34,6 +34,7 @@ curl 'http://127.0.0.1:4521/api/stats?from=2026-06-10T17:00:00.000Z&to=2026-06-1
   "status": "todo",            // "todo" | "in_progress" | "done"
   "due_at": "2026-06-10T11:00:00.000Z",  // or null
   "priority": 0,                // 0 none, 1 low, 2 medium, 3 high
+  "repeat": null,               // null | "daily" | "weekly" | "monthly" (requires due_at)
   "sort_order": 3.5,            // position inside its status column (ascending)
   "created_at": "2026-06-09T08:00:00.000Z",
   "completed_at": null,         // set when status becomes "done"
@@ -74,6 +75,10 @@ curl 'http://127.0.0.1:4521/api/stats?from=2026-06-10T17:00:00.000Z&to=2026-06-1
   - `status` → `"done"` sets `completed_at` (now). Leaving `"done"` clears it.
   - `status` change WITHOUT `sort_order` appends to bottom of the target column.
   - Drag & drop sends both `status` and `sort_order` (fractional indexing; client computes midpoint).
+  - A `repeat` rule requires a due date (`400 VALIDATION` otherwise — clear both together).
+  - `status` → `"done"` on a task with `repeat` + `due_at` ALSO inserts the next
+    occurrence: same title/notes/priority/repeat, status `todo`, due advanced by the
+    rule (day/week/month, keeping the time of day) until it lands in the future.
 - `DELETE /api/tasks/:id` → `200 {"task": Task}` (soft delete, sets `deleted_at`)
 - `POST /api/tasks/:id/restore` → `200 {"task": Task}` (clears `deleted_at`)
 

@@ -56,3 +56,8 @@ Login/multi-user, cloud sync, collaboration/sharing, App Store distribution, pus
 - FR-6.6 **Standalone mode**: the full app runs without the server (browser-local data
   engine with identical rules), enabling the free public deployment.
 - FR-6.7 **Wa (和) theme** in addition to auto/light/dark, meeting WCAG AA contrast.
+- FR-6.8 **Recurring tasks**: daily/weekly/monthly rules (requiring a due date);
+  completing an occurrence schedules the next one in the future, keeping the time of
+  day; available from the detail sheet and `todo add -r`.
+- NFR-7 In standalone mode the app requests **persistent storage**
+  (`navigator.storage.persist()`) so browsers do not evict the user's data.

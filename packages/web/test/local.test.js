@@ -108,6 +108,60 @@ describe('tasks', () => {
   })
 })
 
+describe('recurring tasks', () => {
+  const hours = (n) => new Date(Date.now() + n * 3600_000).toISOString()
+
+  it('completing a repeating task spawns the next occurrence (parity with server)', async () => {
+    const due = hours(26)
+    const task = await api.createTask({ title: 'water plants', due_at: due, repeat: 'daily' })
+    await api.patchTask(task.id, { status: 'done' })
+
+    const open = (await api.tasks()).filter((t) => t.status === 'todo')
+    const next = open.find((t) => t.title === 'water plants')
+    expect(next).toBeTruthy()
+    expect(next.repeat).toBe('daily')
+    expect(new Date(next.due_at) - new Date(due)).toBe(24 * 3600_000)
+
+    // completing the same task again (idempotent toggle) must not spawn twice
+    await api.patchTask(task.id, { status: 'done' })
+    expect((await api.tasks()).filter((t) => t.title === 'water plants')).toHaveLength(2)
+  })
+
+  it('monthly recurrence clamps short months instead of overflowing', async () => {
+    let t = new Date(2027, 0, 30)
+    const clocked = createLocalApi(memoryStorage(), () => t)
+    const due = new Date(2027, 0, 31, 9).toISOString() // Jan 31, 9:00 local
+    const task = await clocked.createTask({ title: 'rent', due_at: due, repeat: 'monthly' })
+    await clocked.patchTask(task.id, { status: 'done' })
+    const feb = (await clocked.tasks()).find((x) => x.status === 'todo')
+    const d = new Date(feb.due_at)
+    expect([d.getMonth(), d.getDate(), d.getHours()]).toEqual([1, 28, 9]) // Feb 28, not Mar 3
+  })
+
+  it('overdue dailies land in the future, keeping the time of day', async () => {
+    const overdue = await api.createTask({ title: 'stretch', due_at: hours(-30), repeat: 'daily' })
+    await api.patchTask(overdue.id, { status: 'done' })
+    const next = (await api.tasks()).find((t) => t.title === 'stretch' && t.status === 'todo')
+    expect(new Date(next.due_at) > new Date()).toBe(true)
+    expect(new Date(next.due_at).getUTCHours()).toBe(new Date(overdue.due_at).getUTCHours())
+  })
+
+  it('rejects repeat without a due date and invalid rules', async () => {
+    await expect(api.createTask({ title: 'x', repeat: 'daily' })).rejects.toMatchObject({
+      code: 'VALIDATION',
+    })
+    await expect(
+      api.createTask({ title: 'x', due_at: hours(1), repeat: 'fortnightly' })
+    ).rejects.toMatchObject({ code: 'VALIDATION' })
+    const task = await api.createTask({ title: 'y', due_at: hours(2), repeat: 'weekly' })
+    await expect(api.patchTask(task.id, { due_at: null })).rejects.toMatchObject({
+      code: 'VALIDATION',
+    })
+    const cleared = await api.patchTask(task.id, { due_at: null, repeat: null })
+    expect(cleared.repeat).toBeNull()
+  })
+})
+
 describe('focus sessions', () => {
   it('starts, blocks a second session, stops with elapsed time', async () => {
     const task = await api.createTask({ title: 'a' })

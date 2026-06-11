@@ -27,10 +27,32 @@ function apiError(code, message) {
   return err
 }
 
+// The next occurrence keeps the time of day and always lands in the future.
+// Monthly keeps the day-of-month, clamping in shorter months (never
+// overflowing). Mirrors nextDueAt in packages/server/src/routes/tasks.js.
+function nextDueAt(dueIso, repeat, now = new Date()) {
+  const d = new Date(dueIso)
+  const anchorDay = d.getDate()
+  do {
+    if (repeat === 'daily') d.setDate(d.getDate() + 1)
+    else if (repeat === 'weekly') d.setDate(d.getDate() + 7)
+    else {
+      d.setDate(1)
+      d.setMonth(d.getMonth() + 1)
+      const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+      d.setDate(Math.min(anchorDay, daysInMonth))
+    }
+  } while (d <= now)
+  return d.toISOString()
+}
+
 // Mirrors the server's JSON-schema bounds for the fields the engine accepts.
 function validateFields(body) {
   if ('status' in body && !['todo', 'in_progress', 'done'].includes(body.status)) {
     throw apiError('VALIDATION', `invalid status: ${body.status}`)
+  }
+  if ('repeat' in body && body.repeat != null && !['daily', 'weekly', 'monthly'].includes(body.repeat)) {
+    throw apiError('VALIDATION', `invalid repeat: ${body.repeat}`)
   }
   if (
     'priority' in body &&
@@ -110,11 +132,19 @@ export function createLocalApi(storage = defaultStorage(), now = () => new Date(
         .sort((a, b) => a.sort_order - b.sort_order)
     },
 
-    async createTask({ title, notes = '', due_at = null, priority = 0, status = 'todo' } = {}) {
+    async createTask({
+      title,
+      notes = '',
+      due_at = null,
+      priority = 0,
+      status = 'todo',
+      repeat = null,
+    } = {}) {
       if (typeof title !== 'string' || !title.trim() || title.trim().length > 500) {
         throw apiError('VALIDATION', 'title is required (max 500 chars)')
       }
-      validateFields({ status, priority })
+      validateFields({ status, priority, repeat })
+      if (repeat && !due_at) throw apiError('VALIDATION', 'repeat requires a due date')
       const t = iso()
       const task = {
         id: ++data.taskSeq,
@@ -127,6 +157,7 @@ export function createLocalApi(storage = defaultStorage(), now = () => new Date(
         created_at: t,
         completed_at: status === 'done' ? t : null,
         deleted_at: null,
+        repeat,
       }
       data.tasks.push(task)
       persist()
@@ -136,7 +167,13 @@ export function createLocalApi(storage = defaultStorage(), now = () => new Date(
     async patchTask(id, body = {}) {
       const task = requireTask(id)
       validateFields(body)
-      for (const key of ['title', 'notes', 'due_at', 'priority', 'sort_order']) {
+      const resultingRepeat = 'repeat' in body ? body.repeat : task.repeat
+      const resultingDue = 'due_at' in body ? body.due_at : task.due_at
+      if (resultingRepeat && !resultingDue) {
+        throw apiError('VALIDATION', 'repeat requires a due date')
+      }
+      const wasDone = task.status === 'done'
+      for (const key of ['title', 'notes', 'due_at', 'priority', 'sort_order', 'repeat']) {
         if (key in body) task[key] = body[key]
       }
       if ('title' in body && typeof task.title === 'string') task.title = task.title.trim()
@@ -144,6 +181,22 @@ export function createLocalApi(storage = defaultStorage(), now = () => new Date(
         task.status = body.status
         task.completed_at = body.status === 'done' ? iso() : null
         if (!('sort_order' in body)) task.sort_order = nextSortOrder(body.status)
+      }
+      // recurring: completing a repeating task spawns its next occurrence
+      if (!wasDone && task.status === 'done' && task.repeat && task.due_at) {
+        data.tasks.push({
+          id: ++data.taskSeq,
+          title: task.title,
+          notes: task.notes,
+          status: 'todo',
+          due_at: nextDueAt(task.due_at, task.repeat, now()),
+          priority: task.priority,
+          sort_order: nextSortOrder('todo'),
+          created_at: iso(),
+          completed_at: null,
+          deleted_at: null,
+          repeat: task.repeat,
+        })
       }
       persist()
       return task
@@ -277,7 +330,14 @@ export function createLocalApi(storage = defaultStorage(), now = () => new Date(
       data = {
         taskSeq: Math.max(0, ...payload.tasks.map((t) => t.id)),
         sessionSeq: Math.max(0, ...sessions.map((s) => s.id)),
-        tasks: payload.tasks,
+        // normalize fields older backups may lack, matching the server's import
+        tasks: payload.tasks.map((t) => ({
+          ...t,
+          notes: t.notes ?? '',
+          completed_at: t.completed_at ?? null,
+          deleted_at: t.deleted_at ?? null,
+          repeat: t.repeat ?? null,
+        })),
         sessions,
         settings: Object.fromEntries(
           Object.entries(payload.settings ?? {}).map(([k, v]) => [k, String(v)])

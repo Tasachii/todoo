@@ -21,6 +21,7 @@ import { subDays } from 'date-fns'
 import { useUI } from '../App.jsx'
 import { useTasks, useTaskMutations } from '../hooks/useTasks.js'
 import { isOverdue, formatDue } from '../lib/dates.js'
+import { RepeatIcon } from '../components/icons.jsx'
 
 const COLUMNS = [
   { id: 'todo', title: 'To do' },
@@ -41,8 +42,9 @@ function Card({ task, overlay = false }) {
       </p>
       <div className="mt-1 flex items-center gap-2 empty:hidden">
         {task.due_at && (
-          <span className={`text-xs ${isOverdue(task) ? 'font-medium text-rose-500' : 'text-stone-400 dark:text-stone-500'}`}>
+          <span className={`flex items-center gap-1 text-xs ${isOverdue(task) ? 'font-medium text-rose-500' : 'text-stone-400 dark:text-stone-500'}`}>
             {formatDue(task.due_at)}
+            {task.repeat && <RepeatIcon size={11} aria-label={`repeats ${task.repeat}`} />}
           </span>
         )}
         {task.priority > 0 && (

@@ -51,7 +51,8 @@ export function renderTask(index, task) {
   const pri = PRIORITY_LABELS[task.priority] || ''
   const due = formatDue(task.due_at)
   const priStr = pri ? pc.bold(pc.yellow(` ${pri}`)) : ''
-  const dueStr = due ? pc.dim(` [${due}]`) : ''
+  const repeatStr = task.repeat ? '↻ ' : ''
+  const dueStr = due ? pc.dim(` [${repeatStr}${due}]`) : ''
   const numStr = pc.dim(`${String(index).padStart(2)}.`)
 
   let title = task.title

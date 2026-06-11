@@ -40,8 +40,8 @@ export default async function backupRoutes(app) {
       const { tasks = [], focus_sessions = [], settings = {} } = req.body
 
       const insertTask = db.prepare(
-        `INSERT INTO tasks (id, title, notes, status, due_at, priority, sort_order, created_at, completed_at, deleted_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO tasks (id, title, notes, status, due_at, priority, sort_order, created_at, completed_at, deleted_at, repeat)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       const insertSession = db.prepare(
         `INSERT INTO focus_sessions (id, task_id, planned_sec, started_at, ended_at, duration_sec, completed)
@@ -64,7 +64,8 @@ export default async function backupRoutes(app) {
             t.sort_order ?? 0,
             t.created_at ?? new Date().toISOString(),
             t.completed_at ?? null,
-            t.deleted_at ?? null
+            t.deleted_at ?? null,
+            t.repeat ?? null
           )
         }
         for (const s of focus_sessions) {

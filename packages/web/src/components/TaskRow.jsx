@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { useUI } from '../App.jsx'
 import { useTaskMutations } from '../hooks/useTasks.js'
 import { isOverdue, formatDue } from '../lib/dates.js'
-import { CheckIcon, TrashIcon } from './icons.jsx'
+import { CheckIcon, TrashIcon, RepeatIcon } from './icons.jsx'
 
 const SWIPE_THRESHOLD = 80
 
@@ -83,8 +83,9 @@ export default function TaskRow({ task, swipeable = true }) {
           {(task.due_at || task.notes) && (
             <p className="mt-0.5 flex items-center gap-2 text-xs">
               {task.due_at && (
-                <span className={overdue ? 'font-medium text-rose-500' : 'text-stone-400 dark:text-stone-500'}>
+                <span className={`flex items-center gap-1 ${overdue ? 'font-medium text-rose-500' : 'text-stone-400 dark:text-stone-500'}`}>
                   {formatDue(task.due_at)}
+                  {task.repeat && <RepeatIcon size={11} aria-label={`repeats ${task.repeat}`} />}
                 </span>
               )}
               {task.notes && <span className="truncate text-stone-300 dark:text-stone-600">{task.notes}</span>}

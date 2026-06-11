@@ -91,6 +91,17 @@ async function cmdAdd(title, opts) {
     }
     if (opts.priority) body.priority = priorityToInt(opts.priority)
     if (opts.notes) body.notes = opts.notes
+    if (opts.repeat) {
+      if (!['daily', 'weekly', 'monthly'].includes(opts.repeat)) {
+        console.error(pc.red(`Invalid repeat: "${opts.repeat}". Use daily | weekly | monthly.`))
+        process.exit(1)
+      }
+      if (!body.due_at) {
+        console.error(pc.red('A repeating task needs a due date — add -d "tomorrow 9am".'))
+        process.exit(1)
+      }
+      body.repeat = opts.repeat
+    }
 
     const { task } = await api.post('/api/tasks', body)
     const dueStr = task.due_at ? ` due ${formatDue(task.due_at)}` : ''
@@ -347,6 +358,7 @@ program
   .option('-d, --due <text>', 'Due date (natural language)')
   .option('-p, --priority <level>', 'Priority: low | med | high')
   .option('-n, --notes <text>', 'Notes')
+  .option('-r, --repeat <rule>', 'Repeat: daily | weekly | monthly (requires --due)')
   .action(cmdAdd)
 
 program

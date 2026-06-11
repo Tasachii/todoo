@@ -120,3 +120,11 @@ export const SearchIcon = (p) => (
     <path d="M15.8 15.8L20 20" />
   </Icon>
 )
+export const RepeatIcon = (p) => (
+  <Icon {...p}>
+    <path d="M17 2.5l3 3-3 3" />
+    <path d="M20 5.5H8a4 4 0 0 0-4 4v1" />
+    <path d="M7 21.5l-3-3 3-3" />
+    <path d="M4 18.5h12a4 4 0 0 0 4-4v-1" />
+  </Icon>
+)
