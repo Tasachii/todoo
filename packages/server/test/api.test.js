@@ -101,6 +101,18 @@ describe('tasks CRUD', () => {
     expect(res.statusCode).toBe(404)
     expect(res.json().error.code).toBe('NOT_FOUND')
   })
+
+  it('reports malformed bodies as VALIDATION, not INTERNAL', async () => {
+    const task = await createTask({ title: 'a' })
+    // A bodyless request claiming application/json is a client error
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/tasks/${task.id}`,
+      headers: { 'content-type': 'application/json' },
+    })
+    expect(res.statusCode).toBe(400)
+    expect(res.json().error.code).toBe('VALIDATION')
+  })
 })
 
 describe('focus sessions', () => {

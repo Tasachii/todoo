@@ -285,15 +285,14 @@ async function cmdOpen() {
 // ── server ────────────────────────────────────────────────────────────────────
 
 async function cmdServer(action) {
-  const { readServerPid, writeServerPid } = await import('./state.js')
+  const { readServerPid } = await import('./state.js')
 
   if (action === 'start') {
-    // Uses ensureServer from api.js via a health check + auto-start
-    try {
-      await api.get('/api/health')
+    const { serverIsUp, ensureServer } = await import('./api.js')
+    if (await serverIsUp()) {
       console.log(pc.green('Server is already running.'))
-    } catch {
-      // api.get calls ensureServer internally
+    } else {
+      await ensureServer() // exits with an error message if it cannot start
       console.log(pc.green('Server started.'))
     }
   } else if (action === 'stop') {

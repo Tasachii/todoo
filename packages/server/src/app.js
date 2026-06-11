@@ -17,10 +17,12 @@ export function buildApp({ db, logger = false } = {}) {
     if (err.validation) {
       return reply.code(400).send({ error: { code: 'VALIDATION', message: err.message } })
     }
-    req.log.error(err)
-    reply
-      .code(err.statusCode && err.statusCode >= 400 ? err.statusCode : 500)
-      .send({ error: { code: 'INTERNAL', message: err.message } })
+    const status = err.statusCode && err.statusCode >= 400 ? err.statusCode : 500
+    if (status >= 500) req.log.error(err)
+    // Malformed requests (bad/empty JSON bodies, unsupported content types)
+    // are client errors, not server faults.
+    const code = status >= 500 ? 'INTERNAL' : 'VALIDATION'
+    reply.code(status).send({ error: { code, message: err.message } })
   })
 
   app.get('/api/health', async () => ({ ok: true, version: VERSION }))

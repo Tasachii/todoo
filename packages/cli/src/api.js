@@ -24,7 +24,16 @@ async function waitForServer() {
  * Auto-start the server if /api/health fails.
  * Spawns detached, writes PID to ~/.todoo/server.pid.
  */
-async function ensureServer() {
+export async function serverIsUp() {
+  try {
+    const res = await fetch(`${BASE}/api/health`)
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+export async function ensureServer() {
   try {
     const res = await fetch(`${BASE}/api/health`)
     if (res.ok) return
@@ -60,11 +69,11 @@ async function ensureServer() {
 export async function request(method, path, body) {
   await ensureServer()
 
-  const opts = {
-    method,
-    headers: { 'Content-Type': 'application/json' }
-  }
+  const opts = { method }
   if (body !== undefined) {
+    // Only send a content-type when there is a body: Fastify rejects
+    // bodyless requests (e.g. DELETE) that claim application/json.
+    opts.headers = { 'Content-Type': 'application/json' }
     opts.body = JSON.stringify(body)
   }
 

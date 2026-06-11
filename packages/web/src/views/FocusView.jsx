@@ -115,7 +115,8 @@ export default function FocusView() {
     return [...open.filter((t) => t.status === 'in_progress'), ...open.filter((t) => t.status === 'todo')]
   }, [tasks])
 
-  const [taskId, setTaskId] = useState(() => location.state?.taskId ?? null)
+  // undefined = no choice yet (default to top candidate); null = explicitly "no task"
+  const [taskId, setTaskId] = useState(() => location.state?.taskId)
   const [minutes, setMinutes] = useState(null)
   const [finished, setFinished] = useState(null) // session that just completed
   const [breakUntil, setBreakUntil] = useState(null)
@@ -123,7 +124,7 @@ export default function FocusView() {
   const defaultMinutes = settings ? Math.round(Number(settings.focus_duration_sec) / 60) : 25
   const breakMinutes = settings ? Math.round(Number(settings.break_duration_sec) / 60) : 5
   const chosenMinutes = minutes ?? defaultMinutes
-  const selectedTaskId = taskId ?? candidates[0]?.id ?? null
+  const selectedTaskId = taskId === undefined ? (candidates[0]?.id ?? null) : taskId
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['focus-active'] })
