@@ -1,4 +1,8 @@
-# Todoo — App Store Guide
+# TodoDesu — App Store Guide
+
+> **Status: shelved.** This path was fully prepared and works, but distribution
+> currently goes through the free GitHub Pages deployment + PWA instead (no Apple
+> Developer fee). Everything below stays valid for the day a native build is wanted.
 
 How to build the native iOS app and ship it to the App Store. Everything in the
 repository is already prepared; the only things that need your Mac are Xcode and an

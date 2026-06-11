@@ -63,6 +63,10 @@ The fastest way to understand the app is to use it: **https://tasachii.github.io
 — add a task with a date in the sentence, drag it on the board, run one Pomodoro round,
 and switch the theme to 和.
 
+![Today view in the Wa theme](docs/images/today-wa.jpg)
+
+![Pomodoro focus with the ensō ring](docs/images/focus-wa.jpg)
+
 ---
 
 ## 2. Concept
@@ -227,64 +231,23 @@ deployment possible.
 
 ## 4. Modules & Classes
 
-**Server (`packages/server`)**
+The responsibilities at a glance — module-by-module detail, with the data flows and
+the reasoning behind each design decision, lives in
+[`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) (kept in sync with the code).
 
-- **`buildApp` — app factory.** Constructs the Fastify instance, injects the database,
-  normalizes every error to `{error: {code, message}}` (4xx → `VALIDATION`, 5xx →
-  `INTERNAL`), serves the web build with an SPA fallback. A factory rather than a
-  singleton so tests run against `:memory:` databases.
-- **`openDb` + migrations.** Opens SQLite (WAL mode), applies versioned migrations in
-  transactions, purges soft-deleted tasks older than 30 days at startup.
-- **`tasksRoutes`.** CRUD with the business rules: title trimming, `completed_at`
-  set/cleared on status transitions, append-to-column versus explicit fractional
-  `sort_order` for drag & drop, soft delete/restore, strict schema validation
-  (unknown fields rejected).
-- **`focusRoutes`.** One active session globally (409 on conflict), focused tasks
-  promoted to *in progress*, duration computed server-side — capped at the plan,
-  clamped ≥ 0 — and idempotent stop.
-- **`statsRoutes`.** Aggregates over explicit UTC ranges; the server never computes
-  "today" — clients pass their local day boundaries.
-- **`settingsRoutes`.** Key-value store merged over defaults (theme, focus style,
-  pomodoro durations).
-- **`backupRoutes`.** Whole-database export; atomic replace-all import with rollback.
-
-**Web (`packages/web`)**
-
-- **`createLocalApi` — the standalone engine.** A factory holding private state
-  (`data`, `storage`) behind the same interface as the HTTP client: every server rule
-  implemented locally, plus snapshot validation, id-sequence reconciliation, and
-  corrupt-snapshot recovery (the bad blob is preserved for rescue).
-- **`api` client.** One function per endpoint; picks HTTP or the engine per
-  build/runtime (Capacitor native, or `VITE_STANDALONE=1`).
-- **`useTasks` / `useTaskMutations`.** One TanStack Query cache for all tasks with
-  optimistic create/patch/delete/restore — snapshot, roll back on error, reconcile on
-  settle. This is what makes swipes and drags feel instant.
-- **`useTheme`.** Four-theme state machine (auto/light/dark/wa) persisted in
-  localStorage; `wa` re-skins the app by overriding the CSS design tokens under
-  `data-theme="wa"`.
-- **Views.** `TodayView` (sectioned list), `BoardView` (dnd-kit sensors + midpoint
-  sort-order math), `CalendarView` (month grid + upcoming), `FocusView` — a four-state
-  machine (idle / running / finished / break) with timestamp-derived timing and the
-  Pomodoro round cycle.
-- **Components.** `QuickAdd` (debounced natural-language date detection, parser
-  lazy-loaded as its own chunk), `TaskRow` (swipe gestures, undo wiring, hanko stamp),
-  `TaskDetail`, `SearchOverlay`, `SettingsSheet` (backup UI), `AppShell` (navigation,
-  theme/search/settings), `UndoToast`.
-- **`detectDue` / `quickdate`.** Finds a date phrase in free text, strips it from the
-  title, defaults to 18:00 when no time is given, and never schedules into the past
-  (explicit weekdays roll a full week).
-
-**CLI (`packages/cli`)**
-
-- **`program` (commander).** All subcommands; `<n>` arguments resolve through a
-  persisted index→id mapping, so `todo done 2` always means "the second item of the
-  last list I saw".
-- **`api` wrapper.** Health-checks and transparently spawns the server (detached
-  process, PID file, 150 ms polling) before any request — the reason every command
-  works from a cold start.
-- **`state`.** `last-list.json`, `last-action.json` (single-level undo), `server.pid`.
-- **`parseDue` / `format`.** Natural-language dates (same rules as the web) and
-  colorized terminal output.
+| Package | Module | Responsibility |
+|---|---|---|
+| server | `buildApp` | Fastify factory: DB injection, uniform `{error:{code,message}}` shape, SPA fallback |
+| server | `db` (openDb + migrations) | SQLite (WAL), versioned migrations, 30-day trash purge |
+| server | `tasksRoutes` | CRUD rules: trimming, `completed_at` transitions, fractional ordering, soft delete |
+| server | `focusRoutes` / `statsRoutes` | Single active session (409), server-computed capped durations; UTC-range aggregates |
+| server | `settingsRoutes` / `backupRoutes` | Defaults-merged key-value store; atomic export/import |
+| web | `createLocalApi` | The standalone engine — every server rule re-implemented over on-device storage |
+| web | `api` client | One function per endpoint; picks HTTP or the engine per build/runtime |
+| web | `useTasks` / `useTaskMutations` / `useTheme` | One optimistic task cache; the four-theme state machine |
+| web | views (`Today/Board/Calendar/Focus`) | Screen logic — dnd-kit math, the Pomodoro four-state machine |
+| web | components (`QuickAdd/TaskRow/…`) | Capture with date detection, swipe + undo, search, backup UI, shell |
+| cli | `program` / `api` / `state` / `parseDue` | Subcommands with index→id mapping, server auto-start, undo state, shared date rules |
 
 ---
 

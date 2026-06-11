@@ -5,6 +5,16 @@ shares the same data. Capture a task from the command line in seconds, organize 
 kanban board from your iPad, run a focus session, and review your week on the calendar —
 all backed by a single SQLite file on your machine. No accounts, no cloud, no tracking.
 
+**Try it now:** https://tasachii.github.io/todoo/
+
+| Today — Wa (和) theme | Focus — Pomodoro with the ensō ring |
+|---|---|
+| ![Today view in the Wa theme](docs/images/today-wa.jpg) | ![Pomodoro focus in the Wa theme](docs/images/focus-wa.jpg) |
+
+| Today — light theme | Board — brush-stroke strikethroughs |
+|---|---|
+| ![Today view in the light theme](docs/images/today-light.jpg) | ![Kanban board in the Wa theme](docs/images/board-wa.jpg) |
+
 ## Why this exists
 
 Most todo apps force a choice: fast capture (terminal tools) or rich organization

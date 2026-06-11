@@ -54,7 +54,7 @@ function ThemeButton() {
 const Wordmark = ({ className = '' }) => (
   <span className={`font-display italic font-semibold tracking-tight ${className}`}>
     TodoDesu<span className="text-accent-bright not-italic">。</span>
-    <span className="ml-1 hidden align-middle text-[10px] font-normal not-italic tracking-[0.25em] text-stone-400 wa:inline"
+    <span className="ml-1 hidden whitespace-nowrap align-middle text-[10px] font-normal not-italic tracking-[0.25em] text-stone-400 wa:inline-block"
             aria-hidden="true">
       トドデス
     </span>

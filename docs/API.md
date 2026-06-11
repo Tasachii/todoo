@@ -4,6 +4,25 @@ Base URL: `http://127.0.0.1:4521`
 All bodies are JSON. All timestamps are ISO 8601 UTC strings (e.g. `2026-06-10T11:00:00.000Z`).
 The server never computes "today" — clients always pass explicit time ranges in their local timezone, converted to UTC.
 
+## Quick examples
+
+```bash
+# add a task due tonight
+curl -X POST http://127.0.0.1:4521/api/tasks \
+  -H 'Content-Type: application/json' \
+  -d '{"title": "Read chapter 4", "due_at": "2026-06-11T11:00:00.000Z", "priority": 2}'
+
+# everything still open
+curl 'http://127.0.0.1:4521/api/tasks?status=todo,in_progress'
+
+# complete task 1 (drag & drop would also send sort_order)
+curl -X PATCH http://127.0.0.1:4521/api/tasks/1 \
+  -H 'Content-Type: application/json' -d '{"status": "done"}'
+
+# today's stats — note the client supplies its own day boundaries in UTC
+curl 'http://127.0.0.1:4521/api/stats?from=2026-06-10T17:00:00.000Z&to=2026-06-11T17:00:00.000Z'
+```
+
 ## Objects
 
 ### Task

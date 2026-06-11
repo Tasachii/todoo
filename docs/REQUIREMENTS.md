@@ -1,4 +1,4 @@
-# Todoo — Requirements
+# TodoDesu — Requirements
 
 ## 1. Functional requirements
 
@@ -41,3 +41,18 @@
 ## 3. Out of scope (v1)
 Login/multi-user, cloud sync, collaboration/sharing, App Store distribution, push notifications
 (iOS PWA notifications are unreliable; overdue tasks are surfaced visually instead).
+
+## 4. Post-v1 additions (shipped after the original scope)
+- FR-6.1 **Pomodoro style** in Focus: 25/5 and 50/10 work/break presets, auto-starting
+  breaks, a long break after the final round, round indicator; style persisted in settings.
+- FR-6.2 **Natural-language dates in the web quick-add** ("pay rent tomorrow 6pm"):
+  detected while typing, shown as a chip, stripped from the title, never resolving into
+  the past; manual picker always wins.
+- FR-6.3 **Search** over titles and notes (`/` key or toolbar button), Open/Done sections.
+- FR-6.4 **Keyboard shortcuts**: `n` new task, `1–4` switch views, `/` search, `esc`
+  closes any sheet; never fire while typing or during keyboard drag.
+- FR-6.5 **Backup**: export the whole database to a JSON file and import it back
+  (atomic replace, portable between server mode and standalone mode).
+- FR-6.6 **Standalone mode**: the full app runs without the server (browser-local data
+  engine with identical rules), enabling the free public deployment.
+- FR-6.7 **Wa (和) theme** in addition to auto/light/dark, meeting WCAG AA contrast.
