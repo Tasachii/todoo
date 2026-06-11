@@ -97,9 +97,9 @@ interfaces attacks both failure modes at once.
    suspending the page, soft delete with undo everywhere, dates that never land in
    the past.
 5. Distributable at zero cost: PWA + standalone engine + GitHub Pages.
-6. Engineering quality: every business rule covered by automated tests (56 across
-   three packages) run in CI on every push, with parity tests pinning the standalone
-   engine to the server's behavior.
+6. Engineering quality: every business rule covered by automated tests (71 across
+   the three packages plus an end-to-end browser suite) run in CI on every push,
+   with parity tests pinning the standalone engine to the server's behavior.
 
 ---
 

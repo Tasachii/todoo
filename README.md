@@ -111,7 +111,7 @@ macOS / Linux (Terminal) and Windows (PowerShell) use the same commands:
 
 ```bash
 git clone https://github.com/Tasachii/TodoDesu.git
-cd todoo
+cd TodoDesu
 npm install
 ```
 
