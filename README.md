@@ -5,7 +5,7 @@ shares the same data. Capture a task from the command line in seconds, organize 
 kanban board from your iPad, run a focus session, and review your week on the calendar —
 all backed by a single SQLite file on your machine. No accounts, no cloud, no tracking.
 
-**Try it now:** https://tasachii.github.io/todoo/
+**Try it now:** https://tasachii.github.io/TodoDesu/
 
 | Today — Wa (和) theme | Focus — Pomodoro with the ensō ring |
 |---|---|
@@ -110,7 +110,7 @@ The full plan, requirements, and API contract are in [`docs/`](docs/).
 macOS / Linux (Terminal) and Windows (PowerShell) use the same commands:
 
 ```bash
-git clone https://github.com/Tasachii/todoo.git
+git clone https://github.com/Tasachii/TodoDesu.git
 cd todoo
 npm install
 ```

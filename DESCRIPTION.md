@@ -9,7 +9,7 @@ the [README](README.md); the deep code walkthrough is
 
 ## 1. Overview
 
-**TodoDesu** (repository name `todoo`) is a local-first todo application with two
+**TodoDesu** (repository: `TodoDesu`) is a local-first todo application with two
 equal clients sharing one source of truth: a progressive web app — Today list, kanban
 board, calendar, and a Pomodoro-style focus mode — and a terminal CLI (`todo`) for
 capturing tasks in seconds. Both talk to a small Fastify REST API that owns a single
@@ -17,7 +17,7 @@ SQLite file on your machine. No accounts, no cloud, no tracking.
 
 The app also runs **fully standalone**: a browser-side data engine implements the same
 business rules as the server against on-device storage. That engine powers the free
-public deployment — **https://tasachii.github.io/todoo/** — where each visitor's data
+public deployment — **https://tasachii.github.io/TodoDesu/** — where each visitor's data
 lives in their own browser, and the optional native iOS build.
 
 ### The problem it solves
@@ -59,7 +59,7 @@ database that the user owns outright.
 
 ### See it
 
-The fastest way to understand the app is to use it: **https://tasachii.github.io/todoo/**
+The fastest way to understand the app is to use it: **https://tasachii.github.io/TodoDesu/**
 — add a task with a date in the sentence, drag it on the board, run one Pomodoro round,
 and switch the theme to 和.
 
