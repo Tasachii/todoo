@@ -201,6 +201,15 @@ build an app around an in-memory DB. It:
 **`routes/settings.js`** — `GET` merges defaults with stored rows; `PUT` upserts each
 key (values coerced to strings) and returns the merged result.
 
+**`routes/backup.js`** — `GET /api/export` dumps everything (tasks including
+soft-deleted, focus sessions, stored settings) as one JSON payload;
+`POST /api/import` validates it is a Todoo backup and replaces all data inside a
+transaction, preserving ids. The standalone engine produces and accepts the identical
+shape, so a backup file moves data between the server-backed app and a standalone
+browser. The web UI for both lives in the Settings sheet (gear icon in the shell).
+Note that the 30-day purge still applies after an import: trashed items whose
+`deleted_at` is older than 30 days disappear on the next startup, by design.
+
 ### Shared helpers (`db/queries.js`)
 
 `nextSortOrder(db, status)` returns `MAX(sort_order) + 1` for the column. Because drag &

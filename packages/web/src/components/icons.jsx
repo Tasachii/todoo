@@ -96,3 +96,21 @@ export const FlagIcon = (p) => (
     <path d="M6 21V4.5M6 4.5c2.5-1.5 5-1.5 7.5 0s5 1.5 7-.0V14c-2 1.5-4.5 1.5-7 0s-5-1.5-7.5 0" />
   </Icon>
 )
+export const GearIcon = (p) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="3.2" />
+    <path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4L18 18M18 6l-1.6 1.6M7.6 16.4L6 18" />
+  </Icon>
+)
+export const DownloadIcon = (p) => (
+  <Icon {...p}>
+    <path d="M12 4v11M7.5 11.5L12 16l4.5-4.5" />
+    <path d="M5 19.5h14" />
+  </Icon>
+)
+export const UploadIcon = (p) => (
+  <Icon {...p}>
+    <path d="M12 16V5M7.5 9.5L12 5l4.5 4.5" />
+    <path d="M5 19.5h14" />
+  </Icon>
+)

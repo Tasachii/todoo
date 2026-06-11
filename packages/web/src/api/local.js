@@ -233,6 +233,66 @@ export function createLocalApi(storage = defaultStorage(), now = () => new Date(
       return { ...DEFAULT_SETTINGS, ...data.settings }
     },
 
+    // Same payload shape as the server's /api/export — a backup taken in one
+    // mode restores in the other.
+    async exportData() {
+      return {
+        app: 'todoo',
+        version: 1,
+        exported_at: iso(),
+        tasks: data.tasks.slice().sort((a, b) => a.id - b.id),
+        focus_sessions: data.sessions.slice().sort((a, b) => a.id - b.id),
+        settings: { ...data.settings },
+      }
+    },
+
+    async importData(payload) {
+      if (
+        !payload ||
+        payload.app !== 'todoo' ||
+        payload.version !== 1 ||
+        !Array.isArray(payload.tasks)
+      ) {
+        throw apiError('VALIDATION', 'Not a Todoo backup file')
+      }
+      // Shape-check rows like the server's DB constraints would: a malformed
+      // row must reject the whole import, never poison the store (e.g. a
+      // non-numeric id would make taskSeq NaN and brick createTask forever).
+      const sessions = payload.focus_sessions ?? []
+      const sane =
+        payload.tasks.every(
+          (t) =>
+            t &&
+            Number.isFinite(t.id) &&
+            typeof t.title === 'string' &&
+            ['todo', 'in_progress', 'done'].includes(t.status) &&
+            Number.isFinite(t.sort_order)
+        ) &&
+        sessions.every((s) => s && Number.isFinite(s.id)) &&
+        new Set(payload.tasks.map((t) => t.id)).size === payload.tasks.length &&
+        new Set(sessions.map((s) => s.id)).size === sessions.length
+      if (!sane) {
+        throw apiError('VALIDATION', 'Backup file is invalid or corrupted')
+      }
+      data = {
+        taskSeq: Math.max(0, ...payload.tasks.map((t) => t.id)),
+        sessionSeq: Math.max(0, ...sessions.map((s) => s.id)),
+        tasks: payload.tasks,
+        sessions,
+        settings: Object.fromEntries(
+          Object.entries(payload.settings ?? {}).map(([k, v]) => [k, String(v)])
+        ),
+      }
+      persist()
+      return {
+        imported: {
+          tasks: data.tasks.length,
+          focus_sessions: data.sessions.length,
+          settings: Object.keys(data.settings).length,
+        },
+      }
+    },
+
     async saveSettings(body = {}) {
       for (const [key, value] of Object.entries(body)) {
         data.settings[key] = String(value)

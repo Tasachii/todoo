@@ -76,6 +76,12 @@ The server never computes "today" — clients always pass explicit time ranges i
   `pomodoro_long_break_sec: "900"`, `pomodoro_rounds: "4"`. All values are strings.
 - `PUT /api/settings` body `{key: value, ...}` (merge) → `200 {"settings": {...}}`
 
+### Backup
+- `GET /api/export` → `200 {"app": "todoo", "version": 1, "exported_at": ISO, "tasks": [Task] (including soft-deleted), "focus_sessions": [FocusSession], "settings": {key: value}}`
+- `POST /api/import` body = an export payload (validated: `app` must be `"todoo"`, `version` must be `1`) → `200 {"imported": {"tasks": n, "focus_sessions": n, "settings": n}}`.
+  Replaces ALL existing data atomically; ids are preserved. The same payload shape is
+  produced and accepted by the standalone engine, so backups move between modes.
+
 ## Errors
 Non-2xx responses: `{"error": {"code": "NOT_FOUND" | "VALIDATION" | "CONFLICT" | "INTERNAL", "message": "..."}}`
 

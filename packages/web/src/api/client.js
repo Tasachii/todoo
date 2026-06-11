@@ -35,6 +35,9 @@ const httpApi = {
   stats: (from, to) => request(`/api/stats${qs({ from, to })}`),
   settings: () => request('/api/settings').then((d) => d.settings),
   saveSettings: (body) => request('/api/settings', { method: 'PUT', body }).then((d) => d.settings),
+
+  exportData: () => request('/api/export'),
+  importData: (body) => request('/api/import', { method: 'POST', body }),
 }
 
 // Inside the native app (Capacitor) there is no local server — the data

@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useTheme } from '../hooks/useTheme.js'
+import SettingsSheet from './SettingsSheet.jsx'
 import {
   TodayIcon,
   BoardIcon,
@@ -8,6 +10,7 @@ import {
   SunIcon,
   MoonIcon,
   AutoThemeIcon,
+  GearIcon,
 } from './icons.jsx'
 
 const TABS = [
@@ -38,7 +41,21 @@ const Wordmark = ({ className = '' }) => (
   </span>
 )
 
+function SettingsButton({ onOpen }) {
+  return (
+    <button
+      onClick={onOpen}
+      title="Settings"
+      aria-label="Settings"
+      className="flex h-9 w-9 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-200/60 hover:text-stone-800 dark:text-stone-400 dark:hover:bg-night-edge dark:hover:text-stone-100"
+    >
+      <GearIcon size={18} />
+    </button>
+  )
+}
+
 export default function AppShell({ children }) {
+  const [settingsOpen, setSettingsOpen] = useState(false)
   return (
     <div className="min-h-dvh">
       {/* desktop sidebar */}
@@ -63,8 +80,9 @@ export default function AppShell({ children }) {
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto px-2">
+        <div className="mt-auto flex gap-1 px-2">
           <ThemeButton />
+          <SettingsButton onOpen={() => setSettingsOpen(true)} />
         </div>
       </aside>
 
@@ -73,7 +91,10 @@ export default function AppShell({ children }) {
         style={{ paddingTop: 'max(env(safe-area-inset-top), 14px)' }}
       >
         <Wordmark className="text-xl" />
-        <ThemeButton />
+        <div className="flex gap-1">
+          <ThemeButton />
+          <SettingsButton onOpen={() => setSettingsOpen(true)} />
+        </div>
       </header>
 
       <main className="mx-auto max-w-2xl px-5 pb-32 pt-2 md:pl-64 md:pr-8 md:pt-10 lg:mx-auto lg:max-w-3xl">
@@ -103,6 +124,8 @@ export default function AppShell({ children }) {
           ))}
         </div>
       </nav>
+
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   )
 }

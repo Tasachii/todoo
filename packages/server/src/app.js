@@ -6,6 +6,7 @@ import tasksRoutes from './routes/tasks.js'
 import focusRoutes from './routes/focus.js'
 import statsRoutes from './routes/stats.js'
 import settingsRoutes from './routes/settings.js'
+import backupRoutes from './routes/backup.js'
 
 export const VERSION = '0.1.0'
 
@@ -38,6 +39,7 @@ export function buildApp({ db, logger = false } = {}) {
   app.register(focusRoutes)
   app.register(statsRoutes)
   app.register(settingsRoutes)
+  app.register(backupRoutes)
 
   const webDist = fileURLToPath(new URL('../../web/dist', import.meta.url))
   const hasWebBuild = existsSync(webDist)

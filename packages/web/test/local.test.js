@@ -197,6 +197,65 @@ describe('settings and persistence', () => {
     expect(next.id).toBe(2) // id sequence continues, no collisions
   })
 
+  it('export → import round-trips into a fresh engine without id collisions', async () => {
+    const keep = await api.createTask({ title: 'keep', priority: 2 })
+    const gone = await api.createTask({ title: 'gone' })
+    await api.deleteTask(gone.id)
+    const session = await api.focusStart({ duration_sec: 60 })
+    await api.focusStop(session.id, true)
+    await api.saveSettings({ theme: 'dark' })
+
+    const dump = await api.exportData()
+    expect(dump.app).toBe('todoo')
+    expect(dump.tasks).toHaveLength(2) // includes the deleted one
+
+    const fresh = createLocalApi(memoryStorage())
+    const { imported } = await fresh.importData(dump)
+    expect(imported).toEqual({ tasks: 2, focus_sessions: 1, settings: 1 })
+
+    const tasks = await fresh.tasks()
+    expect(tasks).toHaveLength(1)
+    expect(tasks[0]).toMatchObject({ id: keep.id, title: 'keep', priority: 2 })
+    expect((await fresh.settings()).theme).toBe('dark')
+    const next = await fresh.createTask({ title: 'new' })
+    expect(next.id).toBeGreaterThan(gone.id)
+  })
+
+  it('importData rejects non-backup payloads', async () => {
+    await expect(api.importData({ hello: 'world' })).rejects.toMatchObject({
+      code: 'VALIDATION',
+    })
+    await expect(api.importData({ app: 'other', version: 1, tasks: [] })).rejects.toMatchObject({
+      code: 'VALIDATION',
+    })
+  })
+
+  it('importData rejects malformed rows instead of poisoning the store', async () => {
+    const base = { app: 'todoo', version: 1 }
+    const task = (over) => ({
+      id: 1, title: 'x', status: 'todo', sort_order: 1, ...over,
+    })
+    // non-numeric id would make taskSeq NaN forever
+    await expect(api.importData({ ...base, tasks: [task({ id: 'x' })] })).rejects.toMatchObject({
+      code: 'VALIDATION',
+    })
+    // duplicate ids
+    await expect(
+      api.importData({ ...base, tasks: [task({}), task({ title: 'y' })] })
+    ).rejects.toMatchObject({ code: 'VALIDATION' })
+    // invalid status / missing sort_order
+    await expect(
+      api.importData({ ...base, tasks: [task({ status: 'NONSENSE' })] })
+    ).rejects.toMatchObject({ code: 'VALIDATION' })
+    await expect(
+      api.importData({ ...base, tasks: [task({ sort_order: undefined })] })
+    ).rejects.toMatchObject({ code: 'VALIDATION' })
+
+    // the store is untouched and still works after rejected imports
+    const created = await api.createTask({ title: 'still fine' })
+    expect(Number.isFinite(created.id)).toBe(true)
+  })
+
   it('starts fresh when the snapshot is corrupt, keeping a recovery copy', async () => {
     storage.setItem('todoo-data-v1', '{not json')
     const reopened = createLocalApi(storage)

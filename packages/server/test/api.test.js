@@ -169,6 +169,70 @@ describe('stats', () => {
   })
 })
 
+describe('backup', () => {
+  it('export → import round-trips everything, including deleted tasks and ids', async () => {
+    const keep = await createTask({ title: 'keep', priority: 2 })
+    const gone = await createTask({ title: 'gone' })
+    await app.inject({ method: 'DELETE', url: `/api/tasks/${gone.id}` })
+    const fs = await app.inject({ method: 'POST', url: '/api/focus/start', body: { duration_sec: 60 } })
+    await app.inject({ method: 'POST', url: `/api/focus/${fs.json().session.id}/stop`, body: { completed: true } })
+    await app.inject({ method: 'PUT', url: '/api/settings', body: { theme: 'dark' } })
+
+    const dump = (await app.inject({ method: 'GET', url: '/api/export' })).json()
+    expect(dump.app).toBe('todoo')
+    expect(dump.tasks).toHaveLength(2)
+
+    const fresh = buildApp({ db: openDb(':memory:') })
+    const res = await fresh.inject({ method: 'POST', url: '/api/import', body: dump })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().imported.tasks).toBe(2)
+
+    const tasks = (await fresh.inject({ method: 'GET', url: '/api/tasks' })).json().tasks
+    expect(tasks).toHaveLength(1)
+    expect(tasks[0]).toMatchObject({ id: keep.id, title: 'keep', priority: 2 })
+    const trash = (await fresh.inject({ method: 'GET', url: '/api/tasks?deleted=true' })).json().tasks
+    expect(trash[0].title).toBe('gone')
+    const settings = (await fresh.inject({ method: 'GET', url: '/api/settings' })).json().settings
+    expect(settings.theme).toBe('dark')
+
+    // id sequence continues past imported ids — no collisions
+    const next = await fresh.inject({ method: 'POST', url: '/api/tasks', body: { title: 'new' } })
+    expect(next.json().task.id).toBeGreaterThan(gone.id)
+  })
+
+  it('rejects payloads that are not a todoo backup', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/import',
+      body: { app: 'other', version: 1, tasks: [] },
+    })
+    expect(res.statusCode).toBe(400)
+    expect(res.json().error.code).toBe('VALIDATION')
+  })
+
+  it('rolls back atomically on malformed rows with a friendly message', async () => {
+    await createTask({ title: 'precious' })
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/import',
+      body: {
+        app: 'todoo',
+        version: 1,
+        tasks: [
+          { id: 1, title: 'ok', status: 'todo', sort_order: 1, created_at: 'x' },
+          { id: 2, title: 'bad', status: 'NONSENSE', sort_order: 2, created_at: 'x' },
+        ],
+      },
+    })
+    expect(res.statusCode).toBe(400)
+    expect(res.json().error.message).toBe('Backup file is invalid or corrupted')
+    // old data survives the failed import
+    const tasks = (await app.inject({ method: 'GET', url: '/api/tasks' })).json().tasks
+    expect(tasks).toHaveLength(1)
+    expect(tasks[0].title).toBe('precious')
+  })
+})
+
 describe('settings', () => {
   it('returns defaults and merges updates', async () => {
     const before = await app.inject({ method: 'GET', url: '/api/settings' })
