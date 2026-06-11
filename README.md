@@ -88,10 +88,14 @@ The full plan, requirements, and API contract are in [`docs/`](docs/).
 
 ## Requirements
 
-- Node.js 23.4 or newer (for the built-in `node:sqlite` module)
-- macOS is the primary target; Linux works as well
+- Node.js 23.4 or newer (for the built-in `node:sqlite` module) — check with `node -v`
+- macOS is the primary target; Linux works as well. On **Windows**, the server, web
+  app, and tests run fine in PowerShell or WSL; the only macOS-specific command is
+  `todo open` (it shells out to `open`)
 
 ## Installation
+
+macOS / Linux (Terminal) and Windows (PowerShell) use the same commands:
 
 ```bash
 git clone https://github.com/Tasachii/todoo.git
@@ -104,6 +108,9 @@ Install the `todo` command globally:
 ```bash
 npm run cli:link
 ```
+
+No database setup is needed — SQLite ships inside Node and the file is created on
+first run at `~/.todoo/data.db`.
 
 ## Usage
 
@@ -164,6 +171,19 @@ todo server <action>          start | stop | status
 List numbers refer to the most recently printed list, so a typical flow is `todo`,
 then `todo done 2`.
 
+### Two-minute tutorial
+
+1. `npm run build && npm start`, then open `http://127.0.0.1:4521`.
+2. Type **"pay rent tomorrow 6pm"** in the quick-add bar — watch the date chip appear —
+   and press Enter.
+3. Press `2` to open the **Board**, drag the card to *In progress*.
+4. Press `4` for **Focus**, switch the header toggle to **Pomodoro**, hit *Start
+   focusing* — when the chime plays, the break starts by itself.
+5. Swipe the task right (or click its circle) to complete it — try the **和** theme
+   first (theme button) to see the hanko 完 stamp.
+6. Press `/` to search anything you've ever added; open Settings (gear) to export a
+   backup. In the terminal, `todo` then `todo done 1` closes the loop.
+
 ### Configuration
 
 | Environment variable | Default | Purpose |
@@ -181,8 +201,30 @@ npm test
 Runs the server integration suite (every endpoint, via Fastify's injection, no real
 network) and the CLI unit tests (natural-language date parsing).
 
+## Known bugs
+
+None currently known. Bugs found during QA passes (a broken CLI `rm`, a focus-view
+task picker that snapped back, dates resolving into the past) were fixed with
+regression tests in the same commit — see the git history. If you find one, the
+fastest report is a GitHub issue with the steps to reproduce.
+
+## Unfinished work
+
+The core loop is complete and shipped. Intentionally left for later, in order of
+value: recurring tasks, weekly statistics and streaks, Thai-language date parsing,
+cross-device sync (needs cloud + auth), and the prepared-but-unused iOS App Store
+build (`packages/web/ios/` — shelved over the developer-program fee, see
+[`docs/APP_STORE.md`](docs/APP_STORE.md)).
+
+## External sources
+
+All libraries, fonts, and licenses are credited in
+[`DESCRIPTION.md §7`](DESCRIPTION.md#7-credits--licenses). Everything else — icon,
+artwork, the synthesized chime, and all code — is original to this project (MIT).
+
 ## Project documentation
 
+- [`DESCRIPTION.md`](DESCRIPTION.md) — project story: overview, concept, module diagram, statistics design
 - [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) — the full picture: how every part of the code works, data flows, and design decisions
 - [`docs/PLAN.md`](docs/PLAN.md) — technical plan, milestones, and risk register
 - [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — functional and non-functional requirements
