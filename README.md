@@ -221,11 +221,15 @@ network) and the CLI unit tests (natural-language date parsing).
 - [`docs/PLAN.md`](docs/PLAN.md) — technical plan, milestones, and risk register
 - [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — functional and non-functional requirements
 - [`docs/API.md`](docs/API.md) — REST API contract
+- [`docs/QA_PLAN.md`](docs/QA_PLAN.md) — test pyramid, pre-commit gates, manual checklist
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — what to build next, with starting points in the code
 - [`docs/APP_STORE.md`](docs/APP_STORE.md) — building the native iOS app and shipping to the App Store
 - [`SKILLS.md`](SKILLS.md) — log of skills and techniques used while building this project
 
 ## Roadmap
 
-Planned after v1, in order of value: recurring tasks, natural-language quick-add in the
-web app, streaks and weekly statistics, cloud deployment with authentication for use
-outside the home network, and sync between the iOS app and the Mac database.
+Recurring tasks and natural-language quick-add have shipped. Next, in order of value:
+cross-device sync (free-tier, keeping the local-first promise), Thai natural-language
+dates, and weekly statistics with streaks. The full plan — with starting points in the
+code, design constraints, and the ideas we deliberately rejected — lives in
+[`docs/ROADMAP.md`](docs/ROADMAP.md): start there if you're picking the project up.

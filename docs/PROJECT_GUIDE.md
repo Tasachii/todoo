@@ -11,6 +11,9 @@ to develop, test, and extend it. It complements the other docs rather than repla
 | [`docs/API.md`](API.md) | The REST API contract (wire format) |
 | [`docs/PLAN.md`](PLAN.md) | Original technical plan, milestones, risk register |
 | [`docs/APP_STORE.md`](APP_STORE.md) | Building the native iOS app and shipping it |
+| [`docs/QA_PLAN.md`](QA_PLAN.md) | Test pyramid, pre-commit gates, manual checklist |
+| [`docs/ROADMAP.md`](ROADMAP.md) | Where to take the project next, with starting points |
+| [`DESCRIPTION.md`](../DESCRIPTION.md) | The project story for outside readers |
 | [`SKILLS.md`](../SKILLS.md) | Log of skills/techniques used while building (Thai) |
 | **This file** | How the code actually works, file by file |
 
@@ -72,18 +75,23 @@ todoo/
 │       ├── api/client.js         # thin fetch wrapper, one function per endpoint;
 │       │                         #   picks HTTP or the standalone engine per build
 │       ├── api/local.js          # standalone data engine (native app / VITE_STANDALONE)
+│       ├── e2e/smoke.spec.js     # Playwright E2E suite (run via npm run test:e2e)
+│       ├── playwright.config.js  # E2E config: real server on :4527, in-memory DB
 │       ├── hooks/useTasks.js     # TanStack Query: tasks cache + optimistic mutations
-│       ├── hooks/useTheme.js     # auto/light/dark, localStorage + media query
+│       ├── hooks/useTheme.js     # auto/light/dark/wa, localStorage + media query
 │       ├── lib/dates.js          # date-fns helpers (overdue, day ranges, formatting)
+│       ├── lib/quickdate.js      # NL date detection for quick-add (lazy chunk)
 │       ├── views/TodayView.jsx   # Overdue / Today / Tomorrow / Inbox sections
 │       ├── views/BoardView.jsx   # 3-column kanban, dnd-kit drag & drop
 │       ├── views/CalendarView.jsx# month grid + Upcoming (next 7 days)
-│       ├── views/FocusView.jsx   # countdown ring, chime, break timer, daily stats
+│       ├── views/FocusView.jsx   # timer + pomodoro cycles, chime, daily stats
 │       └── components/
-│           ├── AppShell.jsx      # desktop sidebar / mobile header + bottom tabs
-│           ├── QuickAdd.jsx      # add-task bar (Enter to submit, optional due time)
-│           ├── TaskRow.jsx       # swipeable row (right=done, left=delete) + undo
-│           ├── TaskDetail.jsx    # bottom-sheet editor (title/notes/due/priority)
+│           ├── AppShell.jsx      # sidebar / mobile tabs + search·theme·settings buttons
+│           ├── QuickAdd.jsx      # add-task bar with as-you-type date detection chip
+│           ├── TaskRow.jsx       # swipeable row (right=done, left=delete) + undo + hanko
+│           ├── TaskDetail.jsx    # bottom-sheet editor (title/notes/due/repeat/priority)
+│           ├── SearchOverlay.jsx # / search over titles + notes
+│           ├── SettingsSheet.jsx # backup export/import UI (gear button)
 │           ├── UndoToast.jsx     # 5-second undo toast
 │           └── icons.jsx         # inline SVG icon set
 │
@@ -174,12 +182,17 @@ build an app around an in-memory DB. It:
 - `POST /api/tasks` inserts at the **bottom** of the target status column
   (`nextSortOrder`), trims the title, and sets `completed_at` if created directly as done.
 - `PATCH /api/tasks/:id` is the workhorse. It builds a dynamic UPDATE from the provided
-  subset of fields, with two business rules:
+  subset of fields, with three business rules:
   1. when `status` changes, `completed_at` is set to now (entering `done`) or cleared
      (leaving `done`);
   2. when `status` changes **without** an explicit `sort_order`, the task is appended to
      the bottom of the new column. Drag & drop sends both `status` and `sort_order`, so it
-     bypasses the append.
+     bypasses the append;
+  3. **recurring** — a `repeat` rule (`daily`/`weekly`/`monthly`) requires a due date
+     (400 otherwise; clear both together), and completing a repeating task inserts its
+     next occurrence via `nextDueAt()`: due advanced past "now", time of day kept,
+     monthly clamped in short months (the 31st → Feb 28). The same function is
+     duplicated in the standalone engine — change them together.
 - `DELETE` sets `deleted_at` (soft); `POST /:id/restore` clears it. Both 404 when the task
   is in the wrong state, so they are safe to retry.
 
@@ -227,16 +240,23 @@ worker in production builds only. `vite.config.js` proxies `/api` to `127.0.0.1:
 during development, so the web code can always use relative URLs.
 
 `App.jsx` defines the four routes (`/`, `/board`, `/calendar`, `/focus`) inside
-`AppShell`, and provides a small **UIContext** with two functions used everywhere:
+`AppShell`, and provides a small **UIContext** with three functions used everywhere:
 
 - `openDetail(taskId)` — opens the `TaskDetail` bottom sheet (rendered once, at app level);
-- `showUndo(label, onUndo)` — shows the 5-second `UndoToast`.
+- `showUndo(label, onUndo)` — shows the 5-second `UndoToast`;
+- `openSearch()` — opens the `SearchOverlay` (also bound to the `/` shortcut).
+
+`App.jsx` also owns the global keyboard shortcuts (`useShortcuts`): `n` focuses
+quick-add, `1–4` switch views, `/` searches — never while typing or while a board card
+is lifted for keyboard drag.
 
 `AppShell.jsx` renders a fixed sidebar on `md:` and up, and a sticky header + bottom tab
-bar (with `env(safe-area-inset-*)` padding for iPhone notches) on mobile. The theme button
-cycles auto → light → dark via `useTheme`, which persists to `localStorage` and toggles
-the `dark` class on `<html>` (Tailwind's class-based dark mode), listening to the system
-media query while in auto.
+bar (with `env(safe-area-inset-*)` padding for iPhone notches) on mobile, plus the
+search, theme, and settings buttons. The theme button cycles auto → light → dark →
+**wa** via `useTheme`, which persists to `localStorage` and applies either the `dark`
+class or `data-theme="wa"` on `<html>`. Wa mode re-skins the whole app by overriding
+the CSS design tokens (and unlocks the ensō ring, hanko stamps, brush strikethroughs,
+and Japanese labels) — see the `[data-theme="wa"]` block in `index.css`.
 
 ### Data layer — one cache, optimistic writes
 
@@ -321,13 +341,21 @@ fire the optimistic mutation **and** `showUndo` with the inverse action (set sta
 restore). The leading circle button toggles done with `stopPropagation` so it doesn't open
 the detail sheet; tapping the row body does.
 
-**QuickAdd** is a controlled form: Enter submits `create.mutate({title, due_at})`; a clock
-button reveals a native `datetime-local` input, converted to ISO UTC by
-`fromLocalInput()`.
+**QuickAdd** detects natural-language dates while you type ("pay rent tomorrow 6pm"):
+a 200 ms debounce runs `detectDue()` from `lib/quickdate.js` (lazy-loaded as its own
+chunk on the first keystroke), shows the result as a chip with a keep-as-text escape
+hatch, and strips the phrase from the title on submit. A fast Enter re-detects
+synchronously so a typed date is never silently dropped; the manual `datetime-local`
+picker always wins over detection. Detected dates never resolve into the past.
 
-**TaskDetail** is a bottom sheet for editing title, notes, due, and priority, and can
-start a focus session on the task. **UndoToast** renders the current toast from App state;
-the timer lives in `App.jsx`.
+**TaskDetail** is a bottom sheet for editing title, notes, due, **repeat**
+(never/daily/weekly/monthly — the selector appears once a date is set, and clearing the
+date clears the rule with it), and priority, and can start a focus session on the task.
+**SearchOverlay** filters the single tasks cache client-side (titles + notes, capped at
+30, Open/Done sections); tapping a row closes the search and opens its detail sheet,
+while checking a task off keeps it open. **SettingsSheet** (gear button) holds the
+backup export/import UI. **UndoToast** renders the current toast from App state; the
+timer lives in `App.jsx`.
 
 ### PWA
 
@@ -448,7 +476,8 @@ npm install          # workspace root; Node ≥ 23.4 required (node:sqlite)
 npm run dev          # server :4521 + Vite :5173 (proxy /api), via concurrently
 npm run build        # builds packages/web/dist
 npm start            # production mode: API + built web app on :4521
-npm test             # server integration suite + CLI date-parsing unit tests
+npm test             # all unit/integration suites (server + cli + web engine)
+npm run test:e2e -w @todoo/web   # Playwright smoke vs the production build (build first)
 npm run cli:link     # makes `todo` available globally
 npm run app:sync     # standalone build → iOS project (Capacitor); see docs/APP_STORE.md
 npm run app:open     # open the iOS project in Xcode

@@ -9,6 +9,8 @@
 - **Database schema design** — soft delete (`deleted_at`), fractional indexing (`sort_order REAL`) สำหรับ drag & drop, แยก `due_at` / `completed_at`
 - **Timezone-safe API** — server ไม่คำนวณ "วันนี้" เอง ให้ client ส่งช่วงเวลา UTC มา
 - **Atomic import/export** — backup ทั้งฐานข้อมูลแบบ transaction + rollback, รักษา id และ autoincrement sequence
+- **Schema migration กับข้อมูลจริง** — เพิ่มคอลัมน์ผ่าน migration แบบ append-only แล้วทดสอบ upgrade กับไฟล์ฐานข้อมูลเวอร์ชันเก่าจริง ไม่ใช่แค่ `:memory:`
+- **Recurring tasks** — งานเกิดซ้ำโดย "ทำเสร็จแล้ว spawn ตัวถัดไป" + บทเรียนสำคัญ: `setMonth` ของ JS ล้นเดือนสั้น (31 ม.ค. + 1 เดือน = 3 มี.ค.!) ต้อง clamp วันเอง
 - **Integration testing** — vitest + `fastify.inject()` ทดสอบทุก endpoint โดยไม่ต้องเปิด port จริง
 
 ## CLI
@@ -40,7 +42,8 @@
 - **Deploy ฟรีบน GitHub Pages** — workflow build standalone + 404.html SPA fallback + เปิด Pages ผ่าน REST API
 - **GitHub Actions CI** — เทสทุก workspace + build ทุก push
 - **Capacitor (iOS)** — scaffold ด้วย Swift Package Manager (ไม่ใช้ CocoaPods), icon ไม่มี alpha ตามข้อกำหนด App Store, `ITSAppUsesNonExemptEncryption`
-- **Playwright (headless Chromium)** — ถ่าย screenshot จริงของแอพสำหรับเอกสาร
+- **Playwright (headless Chromium)** — ถ่าย screenshot จริงของแอพสำหรับเอกสาร + **E2E test ใน CI**: webServer config ชี้ server จริง (DB `:memory:`) เสิร์ฟ production build, เขียน selector ที่ไม่ flake (role/label แทนพิกัด), assertion ที่พิสูจน์ผลลัพธ์เจาะจง (เช่น "แถวที่เหลือคือตัว spawn ไม่ใช่ตัวที่เพิ่งเสร็จ")
+- **Storage durability** — `navigator.storage.persist()` กันเบราว์เซอร์ลบข้อมูล local-first app
 
 ## Engineering practice
 - **npm workspaces (monorepo)** — แยก server / web / cli แต่แชร์กันได้
@@ -48,9 +51,11 @@
 - **Milestone + Definition of Done** — แบ่งงานเป็นช่วงที่จบแล้วใช้ได้จริงทุกช่วง
 - **QA discipline** — แผนเทสเป็นลายลักษณ์อักษร (`docs/QA_PLAN.md`), บั๊กทุกตัวแก้พร้อม regression test, review แยกจากคนเขียนก่อน merge
 
-## สิ่งที่อยากเรียนต่อ (backlog)
-- [ ] Recurring tasks (RRULE)
-- [ ] E2E testing ด้วย Playwright ใน CI
-- [ ] IndexedDB + `navigator.storage.persist()` กัน Safari ลบข้อมูล
-- [ ] Sync ข้ามเครื่อง (Cloudflare Workers + D1 free tier)
-- [ ] Thai natural-language dates ("พรุ่งนี้ 6 โมงเย็น")
+## สิ่งที่อยากเรียนต่อ (backlog → ดูแผนละเอียดใน `docs/ROADMAP.md`)
+- [x] ~~Recurring tasks~~ ✓ (daily/weekly/monthly + clamp เดือนสั้น)
+- [x] ~~E2E testing ด้วย Playwright ใน CI~~ ✓ (7 เทส รันทุก push)
+- [x] ~~`navigator.storage.persist()`~~ ✓ (เหลือ IndexedDB adapter เป็นขั้นถัดไป)
+- [ ] Sync ข้ามเครื่อง (Cloudflare Workers + D1 free tier) — priority 1 ของ roadmap
+- [ ] Thai natural-language dates ("พรุ่งนี้ 6 โมงเย็น") — priority 2
+- [ ] กราฟสถิติรายสัปดาห์ + streak — priority 3
+- [ ] ESLint flat config ใน CI
