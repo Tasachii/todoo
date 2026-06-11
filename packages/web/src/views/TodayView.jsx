@@ -1,5 +1,6 @@
 import { AnimatePresence } from 'framer-motion'
 import { isToday, isTomorrow, format } from 'date-fns'
+import { isStandalone } from '../api/client.js'
 import { useTasks } from '../hooks/useTasks.js'
 import { isOverdue } from '../lib/dates.js'
 import QuickAdd from '../components/QuickAdd.jsx'
@@ -53,7 +54,13 @@ export default function TodayView() {
 
       {isError && (
         <p className="mt-8 text-center text-sm text-rose-500">
-          Can't reach the server — is it running? Try <code>todo server start</code>.
+          {isStandalone ? (
+            <>Something went wrong loading your tasks. Try closing and reopening the app.</>
+          ) : (
+            <>
+              Can't reach the server — is it running? Try <code>todo server start</code>.
+            </>
+          )}
         </p>
       )}
 

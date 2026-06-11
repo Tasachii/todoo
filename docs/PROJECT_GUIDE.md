@@ -10,6 +10,7 @@ to develop, test, and extend it. It complements the other docs rather than repla
 | [`docs/REQUIREMENTS.md`](REQUIREMENTS.md) | Functional / non-functional requirements (FR/NFR) |
 | [`docs/API.md`](API.md) | The REST API contract (wire format) |
 | [`docs/PLAN.md`](PLAN.md) | Original technical plan, milestones, risk register |
+| [`docs/APP_STORE.md`](APP_STORE.md) | Building the native iOS app and shipping it |
 | [`SKILLS.md`](../SKILLS.md) | Log of skills/techniques used while building (Thai) |
 | **This file** | How the code actually works, file by file |
 
@@ -68,7 +69,9 @@ todoo/
 │   └── src/
 │       ├── main.jsx              # React root: QueryClient, Router, SW registration
 │       ├── App.jsx               # routes + UIContext (detail sheet, undo toast)
-│       ├── api/client.js         # thin fetch wrapper, one function per endpoint
+│       ├── api/client.js         # thin fetch wrapper, one function per endpoint;
+│       │                         #   picks HTTP or the standalone engine per build
+│       ├── api/local.js          # standalone data engine (native app / VITE_STANDALONE)
 │       ├── hooks/useTasks.js     # TanStack Query: tasks cache + optimistic mutations
 │       ├── hooks/useTheme.js     # auto/light/dark, localStorage + media query
 │       ├── lib/dates.js          # date-fns helpers (overdue, day ranges, formatting)
@@ -227,8 +230,18 @@ media query while in auto.
 
 ### Data layer — one cache, optimistic writes
 
-`api/client.js` is a ~35-line fetch wrapper: one named function per endpoint, JSON in/out,
+`api/client.js` is a thin fetch wrapper: one named function per endpoint, JSON in/out,
 and non-2xx responses become `Error` objects carrying the server's `error.code`.
+
+It actually exports one of two interchangeable backends. In a browser it is the HTTP
+wrapper above; inside the native app (Capacitor) — or any build made with
+`VITE_STANDALONE=1` — it is the **standalone engine** (`api/local.js`): the same
+business rules as the server (sort order, soft delete + 30-day purge, single focus
+session, duration capping, settings defaults) implemented against a JSON snapshot in
+on-device storage. The views can't tell the difference; the engine's parity with the
+server is enforced by `packages/web/test/local.test.js`, which mirrors the server suite
+case by case. This is what makes the App Store build possible — see
+[`docs/APP_STORE.md`](APP_STORE.md).
 
 `hooks/useTasks.js` is the heart of the UI's responsiveness. The **entire task list lives
 under one query key `['tasks']`** — every view derives what it needs by filtering in
@@ -427,6 +440,8 @@ npm run build        # builds packages/web/dist
 npm start            # production mode: API + built web app on :4521
 npm test             # server integration suite + CLI date-parsing unit tests
 npm run cli:link     # makes `todo` available globally
+npm run app:sync     # standalone build → iOS project (Capacitor); see docs/APP_STORE.md
+npm run app:open     # open the iOS project in Xcode
 ```
 
 | Env var | Default | Purpose |

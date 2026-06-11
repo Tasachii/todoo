@@ -40,6 +40,9 @@ reflected in the next `todo list`.
 ### Platform
 - Light and dark themes; follows the system setting by default with a manual override
 - Installable as a PWA on iPhone, iPad, and Mac (Safari, Add to Home Screen)
+- Builds as a native iOS app (Capacitor) ready for the App Store: on the phone the app
+  runs fully standalone with an on-device data engine — no server, no account, no
+  network. See [`docs/APP_STORE.md`](docs/APP_STORE.md)
 - Accessible from other devices on the same Wi-Fi network when LAN mode is enabled
 - The focus timer derives remaining time from timestamps, so it stays correct even when
   iOS suspends the page in the background
@@ -167,10 +170,11 @@ network) and the CLI unit tests (natural-language date parsing).
 - [`docs/PLAN.md`](docs/PLAN.md) — technical plan, milestones, and risk register
 - [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — functional and non-functional requirements
 - [`docs/API.md`](docs/API.md) — REST API contract
+- [`docs/APP_STORE.md`](docs/APP_STORE.md) — building the native iOS app and shipping to the App Store
 - [`SKILLS.md`](SKILLS.md) — log of skills and techniques used while building this project
 
 ## Roadmap
 
 Planned after v1, in order of value: recurring tasks, natural-language quick-add in the
 web app, streaks and weekly statistics, cloud deployment with authentication for use
-outside the home network, and an App Store build via Capacitor.
+outside the home network, and sync between the iOS app and the Mac database.

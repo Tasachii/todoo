@@ -21,6 +21,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>
 )
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+// No service worker inside the native app: Capacitor serves assets from the
+// app bundle (custom scheme), so there is nothing to cache and SW registration
+// can fail on capacitor://.
+if (
+  'serviceWorker' in navigator &&
+  import.meta.env.PROD &&
+  !window.Capacitor?.isNativePlatform?.()
+) {
   window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
 }

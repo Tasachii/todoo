@@ -1,0 +1,244 @@
+// Standalone data engine: the same business rules as @todoo/server, backed by
+// a JSON snapshot in localStorage instead of SQLite behind a REST API.
+// Used when the app runs inside Capacitor (iOS/Android) or is built with
+// VITE_STANDALONE=1 — environments where no local server exists.
+//
+// It implements exactly the surface the web app uses (see client.js), with
+// the same shapes and the same error codes, so the views cannot tell the
+// difference. Keep rule changes in sync with packages/server/src/routes/.
+
+const STORAGE_KEY = 'todoo-data-v1'
+const PURGE_AFTER_DAYS = 30
+
+const DEFAULT_SETTINGS = {
+  theme: 'auto',
+  focus_style: 'timer',
+  focus_duration_sec: '1500',
+  break_duration_sec: '300',
+  pomodoro_work_sec: '1500',
+  pomodoro_break_sec: '300',
+  pomodoro_long_break_sec: '900',
+  pomodoro_rounds: '4',
+}
+
+function apiError(code, message) {
+  const err = new Error(message)
+  err.code = code
+  return err
+}
+
+// Mirrors the server's JSON-schema bounds for the fields the engine accepts.
+function validateFields(body) {
+  if ('status' in body && !['todo', 'in_progress', 'done'].includes(body.status)) {
+    throw apiError('VALIDATION', `invalid status: ${body.status}`)
+  }
+  if (
+    'priority' in body &&
+    (!Number.isInteger(body.priority) || body.priority < 0 || body.priority > 3)
+  ) {
+    throw apiError('VALIDATION', 'priority must be an integer between 0 and 3')
+  }
+  if ('title' in body && typeof body.title === 'string' && body.title.trim().length > 500) {
+    throw apiError('VALIDATION', 'title too long (max 500 chars)')
+  }
+}
+
+function memoryStorage() {
+  const map = new Map()
+  return {
+    getItem: (k) => map.get(k) ?? null,
+    setItem: (k, v) => map.set(k, v),
+  }
+}
+
+function defaultStorage() {
+  try {
+    if (typeof localStorage !== 'undefined') return localStorage
+  } catch {
+    /* sandboxed webview without storage access */
+  }
+  return memoryStorage()
+}
+
+const emptyData = () => ({ taskSeq: 0, sessionSeq: 0, tasks: [], sessions: [], settings: {} })
+
+export function createLocalApi(storage = defaultStorage(), now = () => new Date()) {
+  let data = emptyData()
+  const raw = storage.getItem(STORAGE_KEY)
+  if (raw) {
+    try {
+      data = { ...emptyData(), ...JSON.parse(raw) }
+    } catch {
+      // Corrupt snapshot — keep a copy for recovery, then start fresh
+      // rather than brick the app.
+      try {
+        storage.setItem(`${STORAGE_KEY}.corrupt`, raw)
+      } catch {
+        /* nothing more we can do */
+      }
+    }
+  }
+  // Reconcile sequence counters with the actual data so a partial snapshot
+  // can never hand out colliding ids.
+  data.taskSeq = Math.max(data.taskSeq, ...data.tasks.map((t) => t.id), 0)
+  data.sessionSeq = Math.max(data.sessionSeq, ...data.sessions.map((s) => s.id), 0)
+
+  const persist = () => storage.setItem(STORAGE_KEY, JSON.stringify(data))
+  const iso = () => now().toISOString()
+
+  // startup purge, same policy as the server
+  const cutoff = new Date(now().getTime() - PURGE_AFTER_DAYS * 24 * 3600 * 1000).toISOString()
+  const before = data.tasks.length
+  data.tasks = data.tasks.filter((t) => !t.deleted_at || t.deleted_at >= cutoff)
+  if (data.tasks.length !== before) persist()
+
+  const live = () => data.tasks.filter((t) => !t.deleted_at)
+  const taskById = (id) => data.tasks.find((t) => t.id === Number(id)) ?? null
+  const nextSortOrder = (status) =>
+    Math.max(0, ...live().filter((t) => t.status === status).map((t) => t.sort_order)) + 1
+
+  const requireTask = (id) => {
+    const task = taskById(id)
+    if (!task || task.deleted_at) throw apiError('NOT_FOUND', 'Not found')
+    return task
+  }
+
+  return {
+    async tasks() {
+      return live()
+        .slice()
+        .sort((a, b) => a.sort_order - b.sort_order)
+    },
+
+    async createTask({ title, notes = '', due_at = null, priority = 0, status = 'todo' } = {}) {
+      if (typeof title !== 'string' || !title.trim() || title.trim().length > 500) {
+        throw apiError('VALIDATION', 'title is required (max 500 chars)')
+      }
+      validateFields({ status, priority })
+      const t = iso()
+      const task = {
+        id: ++data.taskSeq,
+        title: title.trim(),
+        notes,
+        status,
+        due_at,
+        priority,
+        sort_order: nextSortOrder(status),
+        created_at: t,
+        completed_at: status === 'done' ? t : null,
+        deleted_at: null,
+      }
+      data.tasks.push(task)
+      persist()
+      return task
+    },
+
+    async patchTask(id, body = {}) {
+      const task = requireTask(id)
+      validateFields(body)
+      for (const key of ['title', 'notes', 'due_at', 'priority', 'sort_order']) {
+        if (key in body) task[key] = body[key]
+      }
+      if ('title' in body && typeof task.title === 'string') task.title = task.title.trim()
+      if ('status' in body && body.status !== task.status) {
+        task.status = body.status
+        task.completed_at = body.status === 'done' ? iso() : null
+        if (!('sort_order' in body)) task.sort_order = nextSortOrder(body.status)
+      }
+      persist()
+      return task
+    },
+
+    async deleteTask(id) {
+      const task = requireTask(id)
+      task.deleted_at = iso()
+      persist()
+      return task
+    },
+
+    async restoreTask(id) {
+      const task = taskById(id)
+      if (!task || !task.deleted_at) throw apiError('NOT_FOUND', 'No deleted task with that id')
+      task.deleted_at = null
+      persist()
+      return task
+    },
+
+    async focusStart({ task_id = null, duration_sec } = {}) {
+      if (!Number.isInteger(duration_sec) || duration_sec < 60 || duration_sec > 14400) {
+        throw apiError('VALIDATION', 'duration_sec must be between 60 and 14400')
+      }
+      if (data.sessions.some((s) => !s.ended_at)) {
+        throw apiError('CONFLICT', 'A focus session is already active')
+      }
+      if (task_id != null) {
+        const task = requireTask(task_id)
+        if (task.status === 'todo') {
+          task.status = 'in_progress'
+          task.sort_order = nextSortOrder('in_progress')
+        }
+      }
+      const session = {
+        id: ++data.sessionSeq,
+        task_id,
+        planned_sec: duration_sec,
+        started_at: iso(),
+        ended_at: null,
+        duration_sec: null,
+        completed: 0,
+      }
+      data.sessions.push(session)
+      persist()
+      return session
+    },
+
+    async focusStop(id, completed) {
+      const session = data.sessions.find((s) => s.id === Number(id))
+      if (!session) throw apiError('NOT_FOUND', 'Not found')
+      if (session.ended_at) return session // idempotent
+      const t = now()
+      session.ended_at = t.toISOString()
+      // Clamped at 0 too (deliberate divergence from the server): phone clocks
+      // jump backwards far more often than server clocks, and a negative
+      // duration would corrupt the stats sums.
+      session.duration_sec = Math.max(
+        0,
+        Math.min(Math.round((t - new Date(session.started_at)) / 1000), session.planned_sec)
+      )
+      session.completed = completed ? 1 : 0
+      persist()
+      return session
+    },
+
+    async focusActive() {
+      const session = data.sessions.find((s) => !s.ended_at) ?? null
+      if (!session) return null
+      const task = session.task_id != null ? taskById(session.task_id) : null
+      return { ...session, task_title: task?.title ?? null }
+    },
+
+    async stats(from, to) {
+      const finished = data.sessions.filter(
+        (s) => s.ended_at && s.started_at >= from && s.started_at < to
+      )
+      return {
+        focus_sec: finished.reduce((sum, s) => sum + (s.duration_sec ?? 0), 0),
+        focus_sessions: finished.length,
+        tasks_completed: live().filter((t) => t.completed_at && t.completed_at >= from && t.completed_at < to)
+          .length,
+      }
+    },
+
+    async settings() {
+      return { ...DEFAULT_SETTINGS, ...data.settings }
+    },
+
+    async saveSettings(body = {}) {
+      for (const [key, value] of Object.entries(body)) {
+        data.settings[key] = String(value)
+      }
+      persist()
+      return { ...DEFAULT_SETTINGS, ...data.settings }
+    },
+  }
+}

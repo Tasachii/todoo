@@ -5,3 +5,12 @@ dist/
 .env
 coverage/
 .omc/
+
+# iOS (Capacitor) — generated/user-specific files; the project itself is committed
+packages/web/ios/App/App/public/
+packages/web/ios/App/App/capacitor.config.json
+packages/web/ios/App/output/
+packages/web/ios/App/App.xcodeproj/xcuserdata/
+packages/web/ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
+packages/web/ios/DerivedData/
+packages/web/ios/App/Pods/

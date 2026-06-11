@@ -1,0 +1,9 @@
+{
+  "appId": "com.rawinlab.todoo",
+  "appName": "Todoo",
+  "webDir": "dist",
+  "backgroundColor": "#f7f5f1",
+  "ios": {
+    "contentInset": "automatic"
+  }
+}
