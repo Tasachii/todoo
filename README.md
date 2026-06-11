@@ -161,6 +161,7 @@ network) and the CLI unit tests (natural-language date parsing).
 
 ## Project documentation
 
+- [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md) — the full picture: how every part of the code works, data flows, and design decisions
 - [`docs/PLAN.md`](docs/PLAN.md) — technical plan, milestones, and risk register
 - [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — functional and non-functional requirements
 - [`docs/API.md`](docs/API.md) — REST API contract
