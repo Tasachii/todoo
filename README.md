@@ -109,6 +109,16 @@ npm run dev
 This starts the API server on `http://127.0.0.1:4521` and the Vite dev server on
 `http://localhost:5173` (with `/api` proxied to the backend).
 
+### Free hosting (share it with anyone)
+
+The repository ships a GitHub Pages workflow that publishes the **standalone build** —
+the app runs entirely in the visitor's browser with their data in localStorage, so
+hosting costs nothing and no server is involved. Enable it once: repo **Settings →
+Pages → Source: GitHub Actions**, then every push to `main` deploys to
+`https://<user>.github.io/<repo>/`. Visitors on a phone can Add to Home Screen for an
+app-like install, and the Settings sheet (gear icon) exports/imports backups to move
+data between devices.
+
 ### Daily use
 
 ```bash

@@ -27,7 +27,8 @@ self.addEventListener('fetch', (event) => {
       .catch(async () => {
         const cached = await caches.match(event.request)
         if (cached) return cached
-        if (event.request.mode === 'navigate') return caches.match('/index.html')
+        // './' resolves against the SW's own URL, so this works at any base path
+        if (event.request.mode === 'navigate') return caches.match(new URL('./index.html', self.location).href)
         return Response.error()
       })
   )
