@@ -3,7 +3,15 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App.jsx'
+import { isStandalone } from './api/client.js'
 import './index.css'
+
+// In standalone mode the user's data lives in browser storage — ask the
+// browser to never evict it (Safari can otherwise clear storage for sites
+// not visited in a while). Best-effort: a no-op where unsupported.
+if (isStandalone && navigator.storage?.persist) {
+  navigator.storage.persist().catch(() => {})
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
