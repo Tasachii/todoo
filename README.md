@@ -201,27 +201,6 @@ npm test
 Runs the server integration suite (every endpoint, via Fastify's injection, no real
 network) and the CLI unit tests (natural-language date parsing).
 
-## Known bugs
-
-None currently known. Bugs found during QA passes (a broken CLI `rm`, a focus-view
-task picker that snapped back, dates resolving into the past) were fixed with
-regression tests in the same commit — see the git history. If you find one, the
-fastest report is a GitHub issue with the steps to reproduce.
-
-## Unfinished work
-
-The core loop is complete and shipped. Intentionally left for later, in order of
-value: recurring tasks, weekly statistics and streaks, Thai-language date parsing,
-cross-device sync (needs cloud + auth), and the prepared-but-unused iOS App Store
-build (`packages/web/ios/` — shelved over the developer-program fee, see
-[`docs/APP_STORE.md`](docs/APP_STORE.md)).
-
-## External sources
-
-All libraries, fonts, and licenses are credited in
-[`DESCRIPTION.md §7`](DESCRIPTION.md#7-credits--licenses). Everything else — icon,
-artwork, the synthesized chime, and all code — is original to this project (MIT).
-
 ## Project documentation
 
 - [`DESCRIPTION.md`](DESCRIPTION.md) — project story: overview, concept, module diagram, statistics design
